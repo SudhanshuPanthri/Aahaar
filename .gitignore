@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Secrets / local env (NEVER commit real keys). Keep the example.
+.env
+.env.*
+!.env.example
+
+# Expo / build artifacts
+.expo/
+dist/
+web-build/
+*.tsbuildinfo
+
+# Native (generated)
+/mobile/ios
+/mobile/android
+
+# Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# OS
+.DS_Store
