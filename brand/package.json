@@ -1,0 +1,10 @@
+{
+  "name": "aahaar-brand",
+  "private": true,
+  "type": "module",
+  "description": "Brand mark source + icon asset generator (writes into mobile/assets)",
+  "dependencies": {
+    "opentype.js": "^2.0.0",
+    "sharp": "^0.34.0"
+  }
+}
