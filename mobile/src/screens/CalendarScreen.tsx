@@ -8,13 +8,16 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { getDailyTotalsInRange } from '../db/stats';
 import { getDayMeals, todayLocalDate } from '../db/log';
 import { getActiveGoal } from '../db/profile';
-import { COLORS, FONT } from '../ui/theme';
+import { FONT, useTheme, type Palette } from '../ui/theme';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const pad = (n: number) => String(n).padStart(2, '0');
 
 export default function CalendarScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const today = todayLocalDate();
   const [y0, m0] = today.split('-').map(Number);
   const [cursor, setCursor] = useState({ year: y0, month: m0 }); // month is 1-based
@@ -60,10 +63,10 @@ export default function CalendarScreen() {
   /** Colour a day cell by how its intake compares to the goal. */
   function cellColor(kcal: number): string {
     if (kcal === 0) return 'transparent';
-    if (target === 0) return COLORS.calories;
-    if (kcal > target * 1.1) return COLORS.danger; // notably over
-    if (kcal >= target * 0.9) return COLORS.protein; // on target
-    return COLORS.carbs; // under
+    if (target === 0) return colors.calories;
+    if (kcal > target * 1.1) return colors.danger; // notably over
+    if (kcal >= target * 0.9) return colors.protein; // on target
+    return colors.carbs; // under
   }
 
   return (
@@ -141,9 +144,9 @@ export default function CalendarScreen() {
         </Text>
         {target > 0 && (
           <View style={styles.legend}>
-            <Legend color={COLORS.carbs} label="under" />
-            <Legend color={COLORS.protein} label="on target" />
-            <Legend color={COLORS.danger} label="over" />
+            <Legend color={colors.carbs} label="under" styles={styles} />
+            <Legend color={colors.protein} label="on target" styles={styles} />
+            <Legend color={colors.danger} label="over" styles={styles} />
           </View>
         )}
       </View>
@@ -151,7 +154,7 @@ export default function CalendarScreen() {
   );
 }
 
-function Legend({ color, label }: { color: string; label: string }) {
+function Legend({ color, label, styles }: { color: string; label: string; styles: Styles }) {
   return (
     <View style={styles.legendItem}>
       <View style={[styles.legendDot, { backgroundColor: color }]} />
@@ -160,34 +163,36 @@ function Legend({ color, label }: { color: string; label: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, paddingTop: 60, paddingHorizontal: 20, backgroundColor: COLORS.bg },
-  h1: { fontSize: 34, fontFamily: FONT.bold, color: COLORS.ink, letterSpacing: -0.5 },
+const makeStyles = (c: Palette) => StyleSheet.create({
+  screen: { flex: 1, paddingTop: 60, paddingHorizontal: 20, backgroundColor: c.bg },
+  h1: { fontSize: 34, fontFamily: FONT.bold, color: c.ink, letterSpacing: -0.5 },
   monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: 8 },
-  nav: { fontSize: 30, fontFamily: FONT.regular, color: COLORS.calories, paddingHorizontal: 8 },
-  month: { fontSize: 18, fontFamily: FONT.semibold, color: COLORS.ink },
+  nav: { fontSize: 30, fontFamily: FONT.regular, color: c.calories, paddingHorizontal: 8 },
+  month: { fontSize: 18, fontFamily: FONT.semibold, color: c.ink },
   weekRow: { flexDirection: 'row' },
-  weekday: { width: `${100 / 7}%`, textAlign: 'center', fontSize: 12, fontFamily: FONT.semibold, color: COLORS.dim },
+  weekday: { width: `${100 / 7}%`, textAlign: 'center', fontSize: 12, fontFamily: FONT.semibold, color: c.dim },
   scrollContent: { paddingTop: 6, paddingBottom: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', gap: 1 },
-  todayCell: { backgroundColor: COLORS.card, borderRadius: 10 },
-  selectedCell: { borderWidth: 1.5, borderColor: COLORS.calories, borderRadius: 10 },
+  todayCell: { backgroundColor: c.card, borderRadius: 10 },
+  selectedCell: { borderWidth: 1.5, borderColor: c.calories, borderRadius: 10 },
 
   dayPanel: { marginTop: 12, gap: 8 },
-  dayPanelTitle: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.dim, letterSpacing: 1 },
-  mealCard: { backgroundColor: COLORS.card, borderRadius: 12, padding: 12 },
-  mealTitle: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.ink },
-  mealMacros: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.sub, marginTop: 3 },
-  mealBreakdown: { fontSize: 11, fontFamily: FONT.regular, color: COLORS.dim, marginTop: 3 },
+  dayPanelTitle: { fontSize: 11, fontFamily: FONT.semibold, color: c.dim, letterSpacing: 1 },
+  mealCard: { backgroundColor: c.card, borderRadius: 12, padding: 12 },
+  mealTitle: { fontSize: 15, fontFamily: FONT.semibold, color: c.ink },
+  mealMacros: { fontSize: 12, fontFamily: FONT.regular, color: c.sub, marginTop: 3 },
+  mealBreakdown: { fontSize: 11, fontFamily: FONT.regular, color: c.dim, marginTop: 3 },
   dot: { width: 6, height: 6, borderRadius: 3 },
-  dayNum: { fontSize: 14, fontFamily: FONT.semibold, color: COLORS.ink },
-  todayNum: { color: COLORS.calories },
-  kcal: { fontSize: 9, fontFamily: FONT.regular, color: COLORS.dim },
+  dayNum: { fontSize: 14, fontFamily: FONT.semibold, color: c.ink },
+  todayNum: { color: c.calories },
+  kcal: { fontSize: 9, fontFamily: FONT.regular, color: c.dim },
   summary: { paddingVertical: 16, gap: 10 },
-  summaryText: { fontSize: 13, fontFamily: FONT.regular, color: COLORS.sub, textAlign: 'center' },
+  summaryText: { fontSize: 13, fontFamily: FONT.regular, color: c.sub, textAlign: 'center' },
   legend: { flexDirection: 'row', justifyContent: 'center', gap: 16 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.dim },
+  legendText: { fontSize: 12, fontFamily: FONT.regular, color: c.dim },
 });
+
+type Styles = ReturnType<typeof makeStyles>;

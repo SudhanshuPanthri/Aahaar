@@ -4,10 +4,10 @@
  * the WHOLE entry (not per-100g); quantity is informational and still works
  * with the log's −/+ steppers (they rescale proportionally).
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { Estimate } from '../estimate/resolve';
-import { COLORS, FONT } from '../ui/theme';
+import { FONT, useTheme, type Palette } from '../ui/theme';
 
 export default function ManualEntry({
   visible,
@@ -18,6 +18,9 @@ export default function ManualEntry({
   onClose: () => void;
   onSave: (estimate: Estimate) => void;
 }) {
+  const { colors, mode } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [name, setName] = useState('');
   const [qty, setQty] = useState('1');
   const [unit, setUnit] = useState('serving');
@@ -73,35 +76,36 @@ export default function ManualEntry({
               value={name}
               onChangeText={setName}
               placeholder="e.g. protein bar, office lunch thali"
-              placeholderTextColor="#aaa"
+              placeholderTextColor={colors.placeholder}
+              keyboardAppearance={mode}
             />
 
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.label}>QUANTITY</Text>
-                <TextInput style={styles.input} value={qty} onChangeText={setQty} keyboardType="numeric" />
+                <TextInput style={styles.input} value={qty} onChangeText={setQty} keyboardType="numeric" keyboardAppearance={mode} />
               </View>
               <View style={{ flex: 2 }}>
                 <Text style={styles.label}>UNIT</Text>
-                <TextInput style={styles.input} value={unit} onChangeText={setUnit} placeholder="serving / piece / katori" placeholderTextColor="#aaa" />
+                <TextInput style={styles.input} value={unit} onChangeText={setUnit} placeholder="serving / piece / katori" placeholderTextColor={colors.placeholder} keyboardAppearance={mode} />
               </View>
             </View>
 
             <Text style={styles.label}>CALORIES (kcal, total for this entry)</Text>
-            <TextInput style={styles.input} value={kcal} onChangeText={setKcal} keyboardType="numeric" placeholder="e.g. 220" placeholderTextColor="#aaa" />
+            <TextInput style={styles.input} value={kcal} onChangeText={setKcal} keyboardType="numeric" placeholder="e.g. 220" placeholderTextColor={colors.placeholder} keyboardAppearance={mode} />
 
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.label}>PROTEIN g</Text>
-                <TextInput style={styles.input} value={protein} onChangeText={setProtein} keyboardType="numeric" placeholder="0" placeholderTextColor="#aaa" />
+                <TextInput style={styles.input} value={protein} onChangeText={setProtein} keyboardType="numeric" placeholder="0" placeholderTextColor={colors.placeholder} keyboardAppearance={mode} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.label}>CARBS g</Text>
-                <TextInput style={styles.input} value={carbs} onChangeText={setCarbs} keyboardType="numeric" placeholder="0" placeholderTextColor="#aaa" />
+                <TextInput style={styles.input} value={carbs} onChangeText={setCarbs} keyboardType="numeric" placeholder="0" placeholderTextColor={colors.placeholder} keyboardAppearance={mode} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.label}>FAT g</Text>
-                <TextInput style={styles.input} value={fat} onChangeText={setFat} keyboardType="numeric" placeholder="0" placeholderTextColor="#aaa" />
+                <TextInput style={styles.input} value={fat} onChangeText={setFat} keyboardType="numeric" placeholder="0" placeholderTextColor={colors.placeholder} keyboardAppearance={mode} />
               </View>
             </View>
 
@@ -118,21 +122,21 @@ export default function ManualEntry({
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '88%' },
+const makeStyles = (c: Palette) => StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: c.overlay, justifyContent: 'flex-end' },
+  sheet: { backgroundColor: c.sheet, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '88%' },
   content: { padding: 20, paddingBottom: 34, gap: 8 },
-  title: { fontSize: 22, fontFamily: FONT.bold, color: COLORS.ink, letterSpacing: -0.3 },
-  sub: { fontSize: 13, fontFamily: FONT.regular, color: COLORS.sub, marginBottom: 6 },
-  label: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.dim, letterSpacing: 1, marginTop: 6, marginBottom: 4 },
+  title: { fontSize: 22, fontFamily: FONT.bold, color: c.ink, letterSpacing: -0.3 },
+  sub: { fontSize: 13, fontFamily: FONT.regular, color: c.sub, marginBottom: 6 },
+  label: { fontSize: 11, fontFamily: FONT.semibold, color: c.dim, letterSpacing: 1, marginTop: 6, marginBottom: 4 },
   input: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
-    fontSize: 16, fontFamily: FONT.regular, color: COLORS.ink, backgroundColor: '#fff',
+    borderWidth: 1, borderColor: c.inputBorder, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10,
+    fontSize: 16, fontFamily: FONT.regular, color: c.ink, backgroundColor: c.inputBg,
   },
   row: { flexDirection: 'row', gap: 10 },
-  saveBtn: { backgroundColor: COLORS.protein, borderRadius: 12, padding: 15, alignItems: 'center', marginTop: 14 },
-  saveText: { color: '#fff', fontSize: 16, fontFamily: FONT.bold },
+  saveBtn: { backgroundColor: c.protein, borderRadius: 12, padding: 15, alignItems: 'center', marginTop: 14 },
+  saveText: { color: c.onAccent, fontSize: 16, fontFamily: FONT.bold },
   disabled: { opacity: 0.5 },
   cancelBtn: { padding: 12, alignItems: 'center' },
-  cancelText: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.dim },
+  cancelText: { fontSize: 15, fontFamily: FONT.semibold, color: c.dim },
 });

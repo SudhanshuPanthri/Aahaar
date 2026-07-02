@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -11,7 +11,7 @@ import LogScreen from './src/screens/LogScreen';
 import CalendarScreen from './src/screens/CalendarScreen';
 import TrendsScreen from './src/screens/TrendsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
-import { COLORS, FONT } from './src/ui/theme';
+import { FONT, ThemeProvider, useTheme, type Palette } from './src/ui/theme';
 
 // Keep the native splash visible until fonts + DB init finish (avoids a blank flash).
 // (setOptions/fade is a dev-build-only nicety and warns in Expo Go, so we skip it.)
@@ -27,7 +27,17 @@ const TABS: { key: Tab; label: string; icon: IonName; iconActive: IonName }[] = 
 ];
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
+  );
+}
+
+function AppInner() {
   const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_600SemiBold, Inter_700Bold });
+  const { colors, mode } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
 
   const [ready, setReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
@@ -69,9 +79,12 @@ export default function App() {
     if ((ready || initError) && fontsLoaded) SplashScreen.hideAsync();
   }, [ready, initError, fontsLoaded]);
 
+  const statusBar = <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />;
+
   if (initError) {
     return (
       <View style={styles.center}>
+        {statusBar}
         <Text style={styles.error}>DB error:{'\n'}{initError}</Text>
       </View>
     );
@@ -79,6 +92,7 @@ export default function App() {
   if (!ready || !fontsLoaded) {
     return (
       <View style={styles.center}>
+        {statusBar}
         <ActivityIndicator size="large" />
       </View>
     );
@@ -88,12 +102,17 @@ export default function App() {
   // (fresh DB reads), so an edited goal shows up immediately. When opened via
   // "Edit goal" it's cancelable; first-run onboarding must be completed.
   if (needsOnboarding) {
-    return <Onboarding onDone={closeOnboarding} onCancel={editingGoal ? closeOnboarding : undefined} />;
+    return (
+      <>
+        {statusBar}
+        <Onboarding onDone={closeOnboarding} onCancel={editingGoal ? closeOnboarding : undefined} />
+      </>
+    );
   }
 
   return (
     <View style={styles.root}>
-      <StatusBar style="auto" />
+      {statusBar}
       <View style={styles.body} key={dataEpoch}>
         {tab === 'log' && <LogScreen onEditGoal={openEditGoal} />}
         {tab === 'calendar' && <CalendarScreen />}
@@ -109,7 +128,7 @@ export default function App() {
               <Ionicons
                 name={active ? t.iconActive : t.icon}
                 size={23}
-                color={active ? COLORS.calories : '#9a9a9f'}
+                color={active ? colors.calories : colors.tabIdle}
               />
               <Text style={[styles.tabLabel, active ? styles.tabActive : styles.tabInactive]}>{t.label}</Text>
             </Pressable>
@@ -120,22 +139,23 @@ export default function App() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: COLORS.bg },
-  body: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12, backgroundColor: COLORS.bg },
-  error: { fontFamily: FONT.regular, color: COLORS.danger, textAlign: 'center' },
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.bg },
+    body: { flex: 1 },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 12, backgroundColor: c.bg },
+    error: { fontFamily: FONT.regular, color: c.danger, textAlign: 'center' },
 
-  tabBar: {
-    flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    paddingTop: 8,
-    paddingBottom: 24,
-    backgroundColor: '#fff',
-  },
-  tabBtn: { flex: 1, alignItems: 'center', gap: 3 },
-  tabLabel: { fontSize: 11, fontFamily: FONT.semibold },
-  tabActive: { color: COLORS.calories },
-  tabInactive: { color: '#9a9a9f' },
-});
+    tabBar: {
+      flexDirection: 'row',
+      borderTopWidth: 1,
+      borderTopColor: c.border,
+      paddingTop: 8,
+      paddingBottom: 24,
+      backgroundColor: c.bg,
+    },
+    tabBtn: { flex: 1, alignItems: 'center', gap: 3 },
+    tabLabel: { fontSize: 11, fontFamily: FONT.semibold },
+    tabActive: { color: c.calories },
+    tabInactive: { color: c.tabIdle },
+  });

@@ -8,12 +8,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { getAverages, getDailyTotalsInRange, getLoggingStreak, shiftLocalDate } from '../db/stats';
 import { todayLocalDate } from '../db/log';
 import { getActiveGoal } from '../db/profile';
-import { COLORS, FONT } from '../ui/theme';
+import { FONT, useTheme, type Palette } from '../ui/theme';
 
 const WINDOWS = [7, 30] as const;
 const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
 export default function TrendsScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [win, setWin] = useState<(typeof WINDOWS)[number]>(7);
   const goal = useMemo(() => getActiveGoal(), []);
   const avg = useMemo(() => getAverages(win), [win]);
@@ -63,13 +66,13 @@ export default function TrendsScreen() {
         <>
           <View style={styles.tileRow}>
             <View style={styles.tile}>
-              <Ionicons name="flame" size={18} color={COLORS.calories} />
+              <Ionicons name="flame" size={18} color={colors.calories} />
               <Text style={styles.tileVal}>{streak}</Text>
               <Text style={styles.tileLabel}>day streak</Text>
             </View>
             {target > 0 && (
               <View style={styles.tile}>
-                <Ionicons name="checkmark-circle" size={18} color={COLORS.protein} />
+                <Ionicons name="checkmark-circle" size={18} color={colors.protein} />
                 <Text style={styles.tileVal}>{withinGoalDays}</Text>
                 <Text style={styles.tileLabel}>days within goal</Text>
               </View>
@@ -100,7 +103,7 @@ export default function TrendsScreen() {
                     <View
                       style={[
                         styles.bar,
-                        { height: `${h}%`, backgroundColor: d.kcal === 0 ? COLORS.track : over ? COLORS.danger : COLORS.calories },
+                        { height: `${h}%`, backgroundColor: d.kcal === 0 ? colors.track : over ? colors.danger : colors.calories },
                       ]}
                     />
                   </View>
@@ -116,38 +119,38 @@ export default function TrendsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: COLORS.bg },
+const makeStyles = (c: Palette) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: c.bg },
   content: { paddingTop: 60, paddingHorizontal: 20, paddingBottom: 24, gap: 12 },
-  h1: { fontSize: 34, fontFamily: FONT.bold, color: COLORS.ink, letterSpacing: -0.5 },
-  sectionLabel: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.dim, letterSpacing: 1, marginTop: 8 },
-  empty: { fontSize: 14, fontFamily: FONT.regular, color: COLORS.dim, textAlign: 'center', marginTop: 40 },
+  h1: { fontSize: 34, fontFamily: FONT.bold, color: c.ink, letterSpacing: -0.5 },
+  sectionLabel: { fontSize: 11, fontFamily: FONT.semibold, color: c.dim, letterSpacing: 1, marginTop: 8 },
+  empty: { fontSize: 14, fontFamily: FONT.regular, color: c.dim, textAlign: 'center', marginTop: 40 },
 
-  segment: { flexDirection: 'row', backgroundColor: '#f0f0f2', borderRadius: 12, padding: 4 },
+  segment: { flexDirection: 'row', backgroundColor: c.segmentBg, borderRadius: 12, padding: 4 },
   segBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 9 },
-  segBtnActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
-  segText: { fontSize: 14, fontFamily: FONT.semibold, color: '#888' },
-  segTextActive: { color: COLORS.ink },
+  segBtnActive: { backgroundColor: c.segmentActive, shadowColor: c.shadow, shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
+  segText: { fontSize: 14, fontFamily: FONT.semibold, color: c.mute },
+  segTextActive: { color: c.ink },
 
   tileRow: { flexDirection: 'row', gap: 12 },
   tile: {
     flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: COLORS.card, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 14,
+    backgroundColor: c.card, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 14,
   },
-  tileVal: { fontSize: 20, fontFamily: FONT.bold, color: COLORS.ink },
-  tileLabel: { flexShrink: 1, fontSize: 12, fontFamily: FONT.regular, color: COLORS.dim },
+  tileVal: { fontSize: 20, fontFamily: FONT.bold, color: c.ink },
+  tileLabel: { flexShrink: 1, fontSize: 12, fontFamily: FONT.regular, color: c.dim },
 
-  avgCard: { backgroundColor: COLORS.card, borderRadius: 14, padding: 18, gap: 4 },
-  avgLabel: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.dim, letterSpacing: 1 },
-  avgCal: { fontSize: 28, fontFamily: FONT.bold, color: COLORS.ink, letterSpacing: -0.5 },
-  avgMacros: { fontSize: 14, fontFamily: FONT.regular, color: COLORS.sub },
-  avgSub: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.dim, marginTop: 4 },
+  avgCard: { backgroundColor: c.card, borderRadius: 14, padding: 18, gap: 4 },
+  avgLabel: { fontSize: 11, fontFamily: FONT.semibold, color: c.dim, letterSpacing: 1 },
+  avgCal: { fontSize: 28, fontFamily: FONT.bold, color: c.ink, letterSpacing: -0.5 },
+  avgMacros: { fontSize: 14, fontFamily: FONT.regular, color: c.sub },
+  avgSub: { fontSize: 12, fontFamily: FONT.regular, color: c.dim, marginTop: 4 },
 
   chart: { flexDirection: 'row', height: 160, alignItems: 'flex-end', justifyContent: 'space-between' },
   barCol: { flex: 1, alignItems: 'center', height: '100%' },
-  barVal: { fontSize: 9, fontFamily: FONT.regular, color: COLORS.dim, height: 12 },
+  barVal: { fontSize: 9, fontFamily: FONT.regular, color: c.dim, height: 12 },
   barSpace: { flex: 1, width: '55%', justifyContent: 'flex-end' },
   bar: { width: '100%', borderRadius: 4, minHeight: 2 },
-  barDow: { fontSize: 11, fontFamily: FONT.regular, color: COLORS.dim, marginTop: 4 },
-  hint: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.dim },
+  barDow: { fontSize: 11, fontFamily: FONT.regular, color: c.dim, marginTop: 4 },
+  hint: { fontSize: 12, fontFamily: FONT.regular, color: c.dim },
 });

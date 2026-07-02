@@ -123,6 +123,12 @@ export const savedMeal = sqliteTable('saved_meal', {
   lastUsedAt: text('last_used_at'),
 });
 
+/** Tiny key-value store for app preferences (theme, accent colour, …). */
+export const appSetting = sqliteTable('app_setting', {
+  key: text('key').primaryKey(),
+  value: text('value'),
+});
+
 export const parseCache = sqliteTable(
   'parse_cache',
   {
@@ -145,3 +151,4 @@ export type LogItem = typeof logItem.$inferSelect;
 export type NewLogItem = typeof logItem.$inferInsert;
 export type SavedMeal = typeof savedMeal.$inferSelect;
 export type ParseCache = typeof parseCache.$inferSelect;
+export type AppSetting = typeof appSetting.$inferSelect;

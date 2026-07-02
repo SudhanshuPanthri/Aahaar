@@ -3,7 +3,7 @@
  * Shows the TODAY card (progress vs goal) and today's logged items (with delete).
  * Self-contained: reads its own data from the DB on mount / after each change.
  */
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { type Estimate } from '../estimate/resolve';
@@ -32,12 +32,15 @@ import {
 } from '../db/savedMeals';
 import { ProgressBar, MacroStat } from '../ui/Progress';
 import ManualEntry from './ManualEntry';
-import { COLORS, FONT } from '../ui/theme';
+import { FONT, useTheme, type Palette } from '../ui/theme';
 
 /** "2" for whole numbers, "1.5" / "0.5" otherwise. */
 const fmtQty = (q: number) => (Number.isInteger(q) ? String(q) : String(+q.toFixed(2)));
 
 export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
+  const { colors, mode } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [via, setVia] = useState<'ai' | 'local' | 'cache' | null>(null);
@@ -192,7 +195,7 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
             <Text style={styles.todayLabel}>TODAY</Text>
             {streak > 1 && (
               <View style={styles.streakBadge}>
-                <Ionicons name="flame" size={12} color={COLORS.calories} />
+                <Ionicons name="flame" size={12} color={colors.calories} />
                 <Text style={styles.streakText}>{streak}-day streak</Text>
               </View>
             )}
@@ -208,11 +211,11 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
                     : `  ${Math.round(goal.targetCalories - today.calories)} left`}
                 </Text>
               </Text>
-              <ProgressBar value={today.calories} goal={goal.targetCalories} color={COLORS.calories} />
+              <ProgressBar value={today.calories} goal={goal.targetCalories} color={colors.calories} />
               <View style={styles.macroGrid}>
-                <MacroStat label="Protein" value={today.protein} goal={goal.targetProteinG} color={COLORS.protein} />
-                <MacroStat label="Carbs" value={today.carbs} goal={goal.targetCarbsG} color={COLORS.carbs} />
-                <MacroStat label="Fat" value={today.fat} goal={goal.targetFatG} color={COLORS.fat} />
+                <MacroStat label="Protein" value={today.protein} goal={goal.targetProteinG} color={colors.protein} />
+                <MacroStat label="Carbs" value={today.carbs} goal={goal.targetCarbsG} color={colors.carbs} />
+                <MacroStat label="Fat" value={today.fat} goal={goal.targetFatG} color={colors.fat} />
               </View>
               <Text style={styles.todayMacros}>{today.count} item(s) logged</Text>
             </>
@@ -231,7 +234,8 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
           value={text}
           onChangeText={onChangeText}
           placeholder="What did you eat? e.g. 2 roti aur ek katori dal"
-          placeholderTextColor="#aaa"
+          placeholderTextColor={colors.placeholder}
+          keyboardAppearance={mode}
           multiline
         />
         <View style={styles.btnRow}>
@@ -240,7 +244,7 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
           </Pressable>
           {/* Manual entry: log with your own numbers (labels, packaged foods). */}
           <Pressable style={styles.manualBtn} onPress={() => setManualOpen(true)}>
-            <Ionicons name="create-outline" size={18} color={COLORS.calories} />
+            <Ionicons name="create-outline" size={18} color={colors.calories} />
             <Text style={styles.manualText}>Manual</Text>
           </Pressable>
         </View>
@@ -288,7 +292,7 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
                   <Ionicons
                     name={alreadySaved ? 'star' : 'star-outline'}
                     size={24}
-                    color={!canAdd ? '#ccc' : COLORS.calories}
+                    color={!canAdd ? colors.disabled : colors.calories}
                   />
                 </Pressable>
               </View>
@@ -324,7 +328,7 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
                       {!expanded && m.itemCount > 1 && <Text style={styles.breakdown}>{m.itemSummary}</Text>}
                     </Pressable>
                     <Pressable hitSlop={8} onPress={() => onSaveLoggedMeal(m)} disabled={isSaved(m.title)}>
-                      <Ionicons name={isSaved(m.title) ? 'star' : 'star-outline'} size={20} color={COLORS.calories} />
+                      <Ionicons name={isSaved(m.title) ? 'star' : 'star-outline'} size={20} color={colors.calories} />
                     </Pressable>
                     <Pressable hitSlop={10} onPress={() => onDeleteMeal(m)}>
                       <Text style={styles.del}>✕</Text>
@@ -342,15 +346,15 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
                             <Ionicons
                               name="remove-circle-outline"
                               size={24}
-                              color={it.quantity <= 0.5 ? '#d5d5da' : COLORS.calories}
+                              color={it.quantity <= 0.5 ? colors.disabled : colors.calories}
                             />
                           </Pressable>
                           <Text style={styles.itemQty}>{fmtQty(it.quantity)}</Text>
                           <Pressable hitSlop={6} onPress={() => onStepQty(it, 1)}>
-                            <Ionicons name="add-circle-outline" size={24} color={COLORS.calories} />
+                            <Ionicons name="add-circle-outline" size={24} color={colors.calories} />
                           </Pressable>
                           <Pressable hitSlop={8} onPress={() => onDeleteItem(it.id)}>
-                            <Ionicons name="trash-outline" size={18} color="#bbb" />
+                            <Ionicons name="trash-outline" size={18} color={colors.faint} />
                           </Pressable>
                         </View>
                       ))}
@@ -390,84 +394,84 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, paddingTop: 60, backgroundColor: COLORS.bg },
+const makeStyles = (c: Palette) => StyleSheet.create({
+  screen: { flex: 1, paddingTop: 60, backgroundColor: c.bg },
   header: { paddingHorizontal: 20, gap: 10 },
   titleRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  h1: { fontSize: 34, fontFamily: FONT.bold, color: COLORS.ink, letterSpacing: -0.5 },
-  editGoal: { fontSize: 14, fontFamily: FONT.semibold, color: COLORS.calories },
-  dim: { fontSize: 13, fontFamily: FONT.regular, color: '#888' },
-  sectionLabel: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.dim, letterSpacing: 1, marginBottom: 2 },
+  h1: { fontSize: 34, fontFamily: FONT.bold, color: c.ink, letterSpacing: -0.5 },
+  editGoal: { fontSize: 14, fontFamily: FONT.semibold, color: c.calories },
+  dim: { fontSize: 13, fontFamily: FONT.regular, color: c.mute },
+  sectionLabel: { fontSize: 11, fontFamily: FONT.semibold, color: c.dim, letterSpacing: 1, marginBottom: 2 },
 
   todayCard: {
-    backgroundColor: COLORS.card, borderRadius: 14, padding: 16, gap: 8,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2,
+    backgroundColor: c.card, borderRadius: 14, padding: 16, gap: 8,
+    shadowColor: c.shadow, shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
   todayLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  todayLabel: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.dim, letterSpacing: 1 },
+  todayLabel: { fontSize: 11, fontFamily: FONT.semibold, color: c.dim, letterSpacing: 1 },
   streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  streakText: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.calories },
-  todayLeft: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.protein, letterSpacing: 0 },
-  todayOver: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.danger, letterSpacing: 0 },
-  todayCal: { fontSize: 28, fontFamily: FONT.bold, color: COLORS.ink, marginTop: 2, letterSpacing: -0.5 },
-  todayGoal: { fontSize: 16, fontFamily: FONT.regular, color: COLORS.dim, letterSpacing: 0 },
-  todayMacros: { fontSize: 13, fontFamily: FONT.regular, color: COLORS.sub, marginTop: 2 },
+  streakText: { fontSize: 11, fontFamily: FONT.semibold, color: c.calories },
+  todayLeft: { fontSize: 13, fontFamily: FONT.semibold, color: c.protein, letterSpacing: 0 },
+  todayOver: { fontSize: 13, fontFamily: FONT.semibold, color: c.danger, letterSpacing: 0 },
+  todayCal: { fontSize: 28, fontFamily: FONT.bold, color: c.ink, marginTop: 2, letterSpacing: -0.5 },
+  todayGoal: { fontSize: 16, fontFamily: FONT.regular, color: c.dim, letterSpacing: 0 },
+  todayMacros: { fontSize: 13, fontFamily: FONT.regular, color: c.sub, marginTop: 2 },
   macroGrid: { flexDirection: 'row', gap: 12, marginTop: 2 },
 
   input: {
-    borderWidth: 1, borderColor: '#ddd', borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: c.inputBorder, borderRadius: 12, padding: 14,
     fontSize: 16, fontFamily: FONT.regular, minHeight: 64, textAlignVertical: 'top',
-    color: COLORS.ink, backgroundColor: '#fff',
+    color: c.ink, backgroundColor: c.inputBg,
   },
   btnRow: { flexDirection: 'row', gap: 10, alignItems: 'stretch' },
-  btn: { backgroundColor: COLORS.calories, borderRadius: 12, padding: 15, alignItems: 'center' },
+  btn: { backgroundColor: c.calories, borderRadius: 12, padding: 15, alignItems: 'center' },
   manualBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
-    borderWidth: 1.5, borderColor: COLORS.calories, borderRadius: 12, paddingHorizontal: 14,
+    borderWidth: 1.5, borderColor: c.calories, borderRadius: 12, paddingHorizontal: 14,
   },
-  manualText: { fontSize: 14, fontFamily: FONT.semibold, color: COLORS.calories },
+  manualText: { fontSize: 14, fontFamily: FONT.semibold, color: c.calories },
   btnDisabled: { opacity: 0.5 },
-  btnText: { color: '#fff', fontSize: 16, fontFamily: FONT.bold },
+  btnText: { color: c.onAccent, fontSize: 16, fontFamily: FONT.bold },
 
   list: { flex: 1, marginTop: 10 },
   listContent: { paddingHorizontal: 20, gap: 10, paddingBottom: 16 },
   card: {
-    backgroundColor: COLORS.card, borderRadius: 12, padding: 14,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 1 }, elevation: 1,
+    backgroundColor: c.card, borderRadius: 12, padding: 14,
+    shadowColor: c.shadow, shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 1 }, elevation: 1,
   },
-  slotLabel: { fontSize: 10, fontFamily: FONT.semibold, color: COLORS.dim, letterSpacing: 1.2, marginTop: 6, marginBottom: -4 },
+  slotLabel: { fontSize: 10, fontFamily: FONT.semibold, color: c.dim, letterSpacing: 1.2, marginTop: 6, marginBottom: -4 },
   rowCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  food: { fontSize: 16, fontFamily: FONT.semibold, color: COLORS.ink },
+  food: { fontSize: 16, fontFamily: FONT.semibold, color: c.ink },
   mealTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  macros: { fontSize: 13, fontFamily: FONT.regular, color: COLORS.sub, marginTop: 4 },
-  mealTotal: { fontSize: 14, fontFamily: FONT.semibold, color: COLORS.calories, marginTop: 4 },
-  breakdown: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.dim, marginTop: 4 },
-  del: { fontSize: 18, fontFamily: FONT.regular, color: '#bbb', paddingHorizontal: 4 },
+  macros: { fontSize: 13, fontFamily: FONT.regular, color: c.sub, marginTop: 4 },
+  mealTotal: { fontSize: 14, fontFamily: FONT.semibold, color: c.calories, marginTop: 4 },
+  breakdown: { fontSize: 12, fontFamily: FONT.regular, color: c.dim, marginTop: 4 },
+  del: { fontSize: 18, fontFamily: FONT.regular, color: c.faint, paddingHorizontal: 4 },
 
-  itemList: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: COLORS.border, gap: 8 },
+  itemList: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: c.border, gap: 8 },
   itemRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  itemName: { flex: 1, fontSize: 14, fontFamily: FONT.regular, color: COLORS.ink },
-  itemUnit: { fontSize: 12, color: COLORS.dim },
-  itemKcal: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.sub, marginRight: 2 },
-  itemQty: { minWidth: 28, textAlign: 'center', fontSize: 15, fontFamily: FONT.semibold, color: COLORS.ink },
-  itemHint: { fontSize: 11, fontFamily: FONT.regular, color: COLORS.dim, marginTop: 2 },
+  itemName: { flex: 1, fontSize: 14, fontFamily: FONT.regular, color: c.ink },
+  itemUnit: { fontSize: 12, color: c.dim },
+  itemKcal: { fontSize: 12, fontFamily: FONT.regular, color: c.sub, marginRight: 2 },
+  itemQty: { minWidth: 28, textAlign: 'center', fontSize: 15, fontFamily: FONT.semibold, color: c.ink },
+  itemHint: { fontSize: 11, fontFamily: FONT.regular, color: c.dim, marginTop: 2 },
 
   footer: {
     paddingHorizontal: 16, paddingTop: 10, paddingBottom: 20, gap: 10,
-    borderTopWidth: 1, borderTopColor: COLORS.border, backgroundColor: '#fff',
+    borderTopWidth: 1, borderTopColor: c.border, backgroundColor: c.bg,
   },
-  addBtn: { backgroundColor: COLORS.protein, borderRadius: 12, padding: 15, alignItems: 'center' },
-  addBtnText: { color: '#fff', fontSize: 16, fontFamily: FONT.bold },
+  addBtn: { backgroundColor: c.protein, borderRadius: 12, padding: 15, alignItems: 'center' },
+  addBtnText: { color: c.onAccent, fontSize: 16, fontFamily: FONT.bold },
 
   savedWrap: { paddingTop: 12, gap: 6 },
   savedLabel: { paddingHorizontal: 20, marginBottom: 0 },
   savedRow: { paddingHorizontal: 20, gap: 8 },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: COLORS.card, borderRadius: 20, paddingLeft: 14, paddingRight: 10, paddingVertical: 8,
+    backgroundColor: c.card, borderRadius: 20, paddingLeft: 14, paddingRight: 10, paddingVertical: 8,
   },
   chipMain: { maxWidth: 180 },
-  chipName: { fontSize: 14, fontFamily: FONT.semibold, color: COLORS.ink },
-  chipKcal: { fontSize: 11, fontFamily: FONT.regular, color: COLORS.calories },
-  chipDel: { fontSize: 13, fontFamily: FONT.regular, color: '#bbb' },
+  chipName: { fontSize: 14, fontFamily: FONT.semibold, color: c.ink },
+  chipKcal: { fontSize: 11, fontFamily: FONT.regular, color: c.calories },
+  chipDel: { fontSize: 13, fontFamily: FONT.regular, color: c.faint },
 });

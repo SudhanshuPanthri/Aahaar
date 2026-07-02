@@ -18,8 +18,8 @@ import {
   type Sex,
 } from '../goals/calc';
 import { addWeight, getActiveGoal, getLatestWeight, getProfile, saveGoal, saveProfile } from '../db/profile';
+import { FONT, useTheme, type Palette, type ThemeMode } from '../ui/theme';
 
-const FONT = { regular: 'Inter_400Regular', semibold: 'Inter_600SemiBold', bold: 'Inter_700Bold' };
 const CURRENT_YEAR = new Date().getFullYear();
 
 const ACTIVITIES = Object.keys(ACTIVITY_LABELS) as ActivityLevel[];
@@ -33,6 +33,9 @@ function num(s: string): number {
 }
 
 export default function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?: () => void }) {
+  const { colors, mode: themeMode } = useTheme();
+  const styles = useMemo(() => makeStyles(colors), [colors]);
+
   const existingProfile = getProfile();
   const existingGoal = getActiveGoal();
   const existingWeight = getLatestWeight();
@@ -119,16 +122,16 @@ export default function Onboarding({ onDone, onCancel }: { onDone: () => void; o
         {mode === 'guided' ? (
           <>
             <Text style={styles.label}>Sex</Text>
-            <Row>
+            <Row styles={styles}>
               {(['male', 'female'] as Sex[]).map((s) => (
-                <Pill key={s} active={sex === s} onPress={() => setSex(s)} label={s === 'male' ? 'Male' : 'Female'} />
+                <Pill key={s} active={sex === s} onPress={() => setSex(s)} label={s === 'male' ? 'Male' : 'Female'} styles={styles} />
               ))}
             </Row>
 
             <View style={styles.grid}>
-              <Field label="Age" value={age} onChange={setAge} suffix="yrs" />
-              <Field label="Height" value={height} onChange={setHeight} suffix="cm" />
-              <Field label="Weight" value={weight} onChange={setWeight} suffix="kg" />
+              <Field label="Age" value={age} onChange={setAge} suffix="yrs" styles={styles} colors={colors} mode={themeMode} />
+              <Field label="Height" value={height} onChange={setHeight} suffix="cm" styles={styles} colors={colors} mode={themeMode} />
+              <Field label="Weight" value={weight} onChange={setWeight} suffix="kg" styles={styles} colors={colors} mode={themeMode} />
             </View>
 
             <Text style={styles.label}>Activity level</Text>
@@ -139,16 +142,16 @@ export default function Onboarding({ onDone, onCancel }: { onDone: () => void; o
             ))}
 
             <Text style={styles.label}>Goal</Text>
-            <Row>
+            <Row styles={styles}>
               {GOALS.map((g) => (
-                <Pill key={g} active={goalType === g} onPress={() => setGoalType(g)} label={GOAL_LABELS[g]} />
+                <Pill key={g} active={goalType === g} onPress={() => setGoalType(g)} label={GOAL_LABELS[g]} styles={styles} />
               ))}
             </Row>
           </>
         ) : (
           <>
-            <Field label="Daily calorie target" value={customCalories} onChange={setCustomCalories} suffix="kcal" />
-            <Field label="Weight (optional, for protein target)" value={weight} onChange={setWeight} suffix="kg" />
+            <Field label="Daily calorie target" value={customCalories} onChange={setCustomCalories} suffix="kcal" styles={styles} colors={colors} mode={themeMode} />
+            <Field label="Weight (optional, for protein target)" value={weight} onChange={setWeight} suffix="kg" styles={styles} colors={colors} mode={themeMode} />
             <Text style={styles.hint}>Macros are split as 1.6 g/kg protein, 25% fat, the rest carbs.</Text>
           </>
         )}
@@ -173,11 +176,11 @@ export default function Onboarding({ onDone, onCancel }: { onDone: () => void; o
 
 /* ── Small presentational helpers ──────────────────────────────────────── */
 
-function Row({ children }: { children: React.ReactNode }) {
+function Row({ children, styles }: { children: React.ReactNode; styles: Styles }) {
   return <View style={styles.row}>{children}</View>;
 }
 
-function Pill({ active, onPress, label }: { active: boolean; onPress: () => void; label: string }) {
+function Pill({ active, onPress, label, styles }: { active: boolean; onPress: () => void; label: string; styles: Styles }) {
   return (
     <Pressable style={[styles.pill, active && styles.pillActive]} onPress={onPress}>
       <Text style={[styles.pillText, active && styles.pillTextActive]}>{label}</Text>
@@ -190,11 +193,17 @@ function Field({
   value,
   onChange,
   suffix,
+  styles,
+  colors,
+  mode,
 }: {
   label: string;
   value: string;
   onChange: (s: string) => void;
   suffix?: string;
+  styles: Styles;
+  colors: Palette;
+  mode: ThemeMode;
 }) {
   return (
     <View style={styles.field}>
@@ -205,8 +214,9 @@ function Field({
           value={value}
           onChangeText={onChange}
           keyboardType="numeric"
+          keyboardAppearance={mode}
           placeholder="0"
-          placeholderTextColor="#bbb"
+          placeholderTextColor={colors.faint}
         />
         {suffix ? <Text style={styles.suffix}>{suffix}</Text> : null}
       </View>
@@ -214,44 +224,46 @@ function Field({
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#fff' },
+const makeStyles = (c: Palette) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: c.bg },
   content: { padding: 24, paddingTop: 60, paddingBottom: 48, gap: 12 },
   cancelBtn: { alignSelf: 'flex-start', marginBottom: 4 },
-  cancelText: { fontSize: 16, fontFamily: FONT.semibold, color: '#e07a3f' },
-  h1: { fontSize: 30, fontFamily: FONT.bold, color: '#1a1a1a', letterSpacing: -0.5 },
-  sub: { fontSize: 15, fontFamily: FONT.regular, color: '#666', marginBottom: 8 },
-  label: { fontSize: 13, fontFamily: FONT.semibold, color: '#888', marginTop: 8 },
-  hint: { fontSize: 12, fontFamily: FONT.regular, color: '#999', marginTop: 2 },
+  cancelText: { fontSize: 16, fontFamily: FONT.semibold, color: c.calories },
+  h1: { fontSize: 30, fontFamily: FONT.bold, color: c.ink, letterSpacing: -0.5 },
+  sub: { fontSize: 15, fontFamily: FONT.regular, color: c.sub, marginBottom: 8 },
+  label: { fontSize: 13, fontFamily: FONT.semibold, color: c.mute, marginTop: 8 },
+  hint: { fontSize: 12, fontFamily: FONT.regular, color: c.dim, marginTop: 2 },
 
-  segment: { flexDirection: 'row', backgroundColor: '#f0f0f2', borderRadius: 12, padding: 4, marginVertical: 4 },
+  segment: { flexDirection: 'row', backgroundColor: c.segmentBg, borderRadius: 12, padding: 4, marginVertical: 4 },
   segBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 9 },
-  segBtnActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
-  segText: { fontSize: 15, fontFamily: FONT.semibold, color: '#888' },
-  segTextActive: { color: '#1a1a1a' },
+  segBtnActive: { backgroundColor: c.segmentActive, shadowColor: c.shadow, shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
+  segText: { fontSize: 15, fontFamily: FONT.semibold, color: c.mute },
+  segTextActive: { color: c.ink },
 
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   grid: { flexDirection: 'row', gap: 10 },
   field: { flex: 1, gap: 4 },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ddd', borderRadius: 10, paddingHorizontal: 12 },
-  input: { flex: 1, paddingVertical: 12, fontSize: 16, fontFamily: FONT.semibold, color: '#1a1a1a' },
-  suffix: { fontSize: 13, fontFamily: FONT.regular, color: '#999' },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: c.inputBorder, borderRadius: 10, paddingHorizontal: 12, backgroundColor: c.inputBg },
+  input: { flex: 1, paddingVertical: 12, fontSize: 16, fontFamily: FONT.semibold, color: c.ink },
+  suffix: { fontSize: 13, fontFamily: FONT.regular, color: c.dim },
 
-  pill: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1, borderColor: '#ddd', backgroundColor: '#fff' },
-  pillActive: { backgroundColor: '#e07a3f', borderColor: '#e07a3f' },
-  pillText: { fontSize: 14, fontFamily: FONT.semibold, color: '#555' },
-  pillTextActive: { color: '#fff' },
+  pill: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1, borderColor: c.inputBorder, backgroundColor: c.inputBg },
+  pillActive: { backgroundColor: c.calories, borderColor: c.calories },
+  pillText: { fontSize: 14, fontFamily: FONT.semibold, color: c.sub },
+  pillTextActive: { color: c.onAccent },
 
-  opt: { paddingVertical: 12, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: '#eee', backgroundColor: '#fafafa' },
-  optActive: { borderColor: '#e07a3f', backgroundColor: '#fdf3ec' },
-  optText: { fontSize: 14, fontFamily: FONT.regular, color: '#555' },
-  optTextActive: { color: '#1a1a1a', fontFamily: FONT.semibold },
+  opt: { paddingVertical: 12, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: c.border, backgroundColor: c.softBg },
+  optActive: { borderColor: c.calories, backgroundColor: c.accentSoft },
+  optText: { fontSize: 14, fontFamily: FONT.regular, color: c.sub },
+  optTextActive: { color: c.ink, fontFamily: FONT.semibold },
 
-  preview: { backgroundColor: '#1a1a1a', borderRadius: 14, padding: 18, marginTop: 12 },
-  previewCal: { fontSize: 24, fontFamily: FONT.bold, color: '#fff', letterSpacing: -0.4 },
-  previewMacros: { fontSize: 14, fontFamily: FONT.regular, color: '#ccc', marginTop: 4 },
+  preview: { backgroundColor: c.ink, borderRadius: 14, padding: 18, marginTop: 12 },
+  previewCal: { fontSize: 24, fontFamily: FONT.bold, color: c.bg, letterSpacing: -0.4 },
+  previewMacros: { fontSize: 14, fontFamily: FONT.regular, color: c.disabled, marginTop: 4 },
 
-  saveBtn: { backgroundColor: '#e07a3f', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 16 },
-  saveText: { color: '#fff', fontSize: 16, fontFamily: FONT.bold },
+  saveBtn: { backgroundColor: c.calories, borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 16 },
+  saveText: { color: c.onAccent, fontSize: 16, fontFamily: FONT.bold },
   disabled: { opacity: 0.4 },
 });
+
+type Styles = ReturnType<typeof makeStyles>;

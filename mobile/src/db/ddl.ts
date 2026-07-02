@@ -96,6 +96,11 @@ CREATE TABLE IF NOT EXISTS saved_meal (
   last_used_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS app_setting (
+  key TEXT PRIMARY KEY,
+  value TEXT
+);
+
 CREATE TABLE IF NOT EXISTS parse_cache (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   normalized_input TEXT NOT NULL UNIQUE,
