@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
@@ -12,6 +13,7 @@ import CalendarScreen from './src/screens/CalendarScreen';
 import TrendsScreen from './src/screens/TrendsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { FONT, ThemeProvider, useTheme, type Palette } from './src/ui/theme';
+import PressableScale from './src/ui/PressableScale';
 
 // Keep the native splash visible until fonts + DB init finish (avoids a blank flash).
 // (setOptions/fade is a dev-build-only nicety and warns in Expo Go, so we skip it.)
@@ -113,25 +115,31 @@ function AppInner() {
   return (
     <View style={styles.root}>
       {statusBar}
-      <View style={styles.body} key={dataEpoch}>
+      {/* Keyed on tab (+ dataEpoch) so switching tabs remounts the content
+          with a quick fade + 12px slide-up. */}
+      <Animated.View
+        style={styles.body}
+        key={`${tab}-${dataEpoch}`}
+        entering={FadeInDown.duration(220).withInitialValues({ opacity: 0, transform: [{ translateY: 12 }] })}
+      >
         {tab === 'log' && <LogScreen onEditGoal={openEditGoal} />}
         {tab === 'calendar' && <CalendarScreen />}
         {tab === 'trends' && <TrendsScreen />}
         {tab === 'settings' && <SettingsScreen onEditGoal={openEditGoal} onImported={onImported} />}
-      </View>
+      </Animated.View>
 
       <View style={styles.tabBar}>
         {TABS.map((t) => {
           const active = tab === t.key;
           return (
-            <Pressable key={t.key} style={styles.tabBtn} onPress={() => setTab(t.key)}>
+            <PressableScale key={t.key} style={styles.tabBtn} onPress={() => setTab(t.key)}>
               <Ionicons
                 name={active ? t.iconActive : t.icon}
                 size={23}
                 color={active ? colors.calories : colors.tabIdle}
               />
               <Text style={[styles.tabLabel, active ? styles.tabActive : styles.tabInactive]}>{t.label}</Text>
-            </Pressable>
+            </PressableScale>
           );
         })}
       </View>

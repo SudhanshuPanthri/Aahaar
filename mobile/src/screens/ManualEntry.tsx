@@ -4,10 +4,15 @@
  * the WHOLE entry (not per-100g); quantity is informational and still works
  * with the log's −/+ steppers (they rescale proportionally).
  */
-import { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import Animated, { Easing, runOnJS, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import type { Estimate } from '../estimate/resolve';
+import PressableScale from '../ui/PressableScale';
 import { FONT, useTheme, type Palette } from '../ui/theme';
+
+const SHEET_IN = { duration: 260, easing: Easing.out(Easing.cubic) };
+const SHEET_OUT = { duration: 200, easing: Easing.in(Easing.cubic) };
 
 export default function ManualEntry({
   visible,
@@ -20,6 +25,25 @@ export default function ManualEntry({
 }) {
   const { colors, mode } = useTheme();
   const styles = useMemo(() => makeStyles(colors), [colors]);
+  const { height: winH } = useWindowDimensions();
+
+  // 0 = hidden, 1 = fully open. Drives both the backdrop fade and the sheet
+  // slide-up; a manual timing (not Modal's animationType) so we can also play
+  // a graceful exit before actually closing.
+  const openness = useSharedValue(0);
+  useEffect(() => {
+    if (visible) openness.value = withTiming(1, SHEET_IN);
+    else openness.value = 0; // reset so the next open animates from hidden
+  }, [visible, openness]);
+
+  const backdropStyle = useAnimatedStyle(() => ({ opacity: openness.value }));
+  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: (1 - openness.value) * winH }] }));
+
+  function animateClose(after: () => void) {
+    openness.value = withTiming(0, SHEET_OUT, (finished) => {
+      if (finished) runOnJS(after)();
+    });
+  }
 
   const [name, setName] = useState('');
   const [qty, setQty] = useState('1');
@@ -41,7 +65,7 @@ export default function ManualEntry({
 
   function save() {
     if (!canSave) return;
-    onSave({
+    const estimate: Estimate = {
       name: name.trim(),
       quantity: num(qty) || 1,
       unit: unit.trim() || 'serving',
@@ -53,19 +77,25 @@ export default function ManualEntry({
       confidence: 'high',
       matched: true,
       estimatedBy: 'user',
+    };
+    animateClose(() => {
+      onSave(estimate);
+      reset();
     });
-    reset();
   }
 
   function cancel() {
-    reset();
-    onClose();
+    animateClose(() => {
+      reset();
+      onClose();
+    });
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={cancel}>
-      <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={styles.sheet}>
+    <Modal visible={visible} animationType="none" transparent onRequestClose={cancel}>
+      <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Animated.View style={[styles.backdrop, backdropStyle]} pointerEvents="none" />
+        <Animated.View style={[styles.sheet, sheetStyle]}>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
             <Text style={styles.title}>Manual entry</Text>
             <Text style={styles.sub}>Log a food with your own numbers — handy for packaged foods and labels.</Text>
@@ -109,21 +139,22 @@ export default function ManualEntry({
               </View>
             </View>
 
-            <Pressable style={[styles.saveBtn, !canSave && styles.disabled]} onPress={save} disabled={!canSave}>
+            <PressableScale style={[styles.saveBtn, !canSave ? styles.disabled : null]} onPress={save} disabled={!canSave}>
               <Text style={styles.saveText}>Add to today</Text>
-            </Pressable>
+            </PressableScale>
             <Pressable style={styles.cancelBtn} onPress={cancel}>
               <Text style={styles.cancelText}>Cancel</Text>
             </Pressable>
           </ScrollView>
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const makeStyles = (c: Palette) => StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: c.overlay, justifyContent: 'flex-end' },
+  container: { flex: 1, justifyContent: 'flex-end' },
+  backdrop: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: c.overlay },
   sheet: { backgroundColor: c.sheet, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '88%' },
   content: { padding: 20, paddingBottom: 34, gap: 8 },
   title: { fontSize: 22, fontFamily: FONT.bold, color: c.ink, letterSpacing: -0.3 },

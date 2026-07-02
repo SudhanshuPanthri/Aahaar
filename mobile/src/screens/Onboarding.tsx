@@ -18,6 +18,7 @@ import {
   type Sex,
 } from '../goals/calc';
 import { addWeight, getActiveGoal, getLatestWeight, getProfile, saveGoal, saveProfile } from '../db/profile';
+import PressableScale from '../ui/PressableScale';
 import { FONT, useTheme, type Palette, type ThemeMode } from '../ui/theme';
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -166,9 +167,9 @@ export default function Onboarding({ onDone, onCancel }: { onDone: () => void; o
           </View>
         )}
 
-        <Pressable style={[styles.saveBtn, !canSave && styles.disabled]} onPress={onSave} disabled={!canSave}>
+        <PressableScale style={[styles.saveBtn, !canSave ? styles.disabled : null]} onPress={onSave} disabled={!canSave}>
           <Text style={styles.saveText}>{isEdit ? 'Save changes' : 'Start tracking'}</Text>
-        </Pressable>
+        </PressableScale>
       </ScrollView>
     </KeyboardAvoidingView>
   );

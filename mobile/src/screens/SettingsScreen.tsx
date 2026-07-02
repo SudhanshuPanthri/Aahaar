@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { shareBackup, saveBackupToFolder, canSaveToFolder, importBackup } from '../backup/backupFile';
+import PressableScale from '../ui/PressableScale';
 import { ACCENTS, ACCENT_NAMES, FONT, useTheme, type Palette, type ThemePref } from '../ui/theme';
 
 const THEME_OPTIONS: { key: ThemePref; label: string }[] = [
@@ -180,7 +181,7 @@ function Row({
   styles: Styles;
 }) {
   return (
-    <Pressable style={styles.row} onPress={onPress} disabled={loading}>
+    <PressableScale style={styles.row} onPress={onPress} disabled={loading}>
       <Ionicons name={icon} size={22} color={colors.calories} />
       <View style={{ flex: 1 }}>
         <Text style={styles.rowLabel}>{label}</Text>
@@ -191,7 +192,7 @@ function Row({
       ) : (
         <Ionicons name="chevron-forward" size={18} color={colors.disabled} />
       )}
-    </Pressable>
+    </PressableScale>
   );
 }
 

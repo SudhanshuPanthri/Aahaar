@@ -1,7 +1,10 @@
 /** Reusable progress widgets: a thin bar and a labelled macro stat. */
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { FONT, useTheme, type Palette } from './theme';
+
+const FILL_TIMING = { duration: 450, easing: Easing.out(Easing.cubic) };
 
 function useStyles() {
   const { colors } = useTheme();
@@ -14,9 +17,18 @@ export function ProgressBar({ value, goal, color }: { value: number; goal: numbe
   const styles = useStyles();
   const pct = goal > 0 ? Math.min(1, value / goal) : 0;
   const over = goal > 0 && value > goal;
+
+  // Starts at 0 so the bar grows into place on first mount, then eases to
+  // each new value as the day's totals change.
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    progress.value = withTiming(pct, FILL_TIMING);
+  }, [pct, progress]);
+  const fillStyle = useAnimatedStyle(() => ({ width: `${progress.value * 100}%` as const }));
+
   return (
     <View style={styles.barTrack}>
-      <View style={[styles.barFill, { width: `${pct * 100}%`, backgroundColor: over ? colors.danger : color }]} />
+      <Animated.View style={[styles.barFill, { backgroundColor: over ? colors.danger : color }, fillStyle]} />
     </View>
   );
 }

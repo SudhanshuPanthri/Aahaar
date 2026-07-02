@@ -5,6 +5,7 @@
  */
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown, FadeInLeft, FadeInRight } from 'react-native-reanimated';
 import { getDailyTotalsInRange } from '../db/stats';
 import { getDayMeals, todayLocalDate } from '../db/log';
 import { getActiveGoal } from '../db/profile';
@@ -22,6 +23,7 @@ export default function CalendarScreen() {
   const [y0, m0] = today.split('-').map(Number);
   const [cursor, setCursor] = useState({ year: y0, month: m0 }); // month is 1-based
   const [selected, setSelected] = useState<string | null>(null); // "YYYY-MM-DD"
+  const [slideDir, setSlideDir] = useState<1 | -1>(1); // ›: grid slides in from the right; ‹: from the left
   const goal = useMemo(() => getActiveGoal(), []);
   const target = goal?.targetCalories ?? 0;
 
@@ -52,6 +54,7 @@ export default function CalendarScreen() {
 
   function shiftMonth(delta: number) {
     setSelected(null);
+    setSlideDir(delta > 0 ? 1 : -1);
     setCursor((c) => {
       const m = c.month + delta;
       if (m < 1) return { year: c.year - 1, month: 12 };
@@ -92,7 +95,12 @@ export default function CalendarScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.grid}>
+        {/* Keyed on the month so ‹/› replays a quick horizontal slide-in. */}
+        <Animated.View
+          key={`${cursor.year}-${cursor.month}`}
+          entering={(slideDir === 1 ? FadeInRight : FadeInLeft).duration(180)}
+          style={styles.grid}
+        >
           {cells.map((c, i) =>
             c === null ? (
               <View key={`b${i}`} style={styles.cell} />
@@ -112,10 +120,10 @@ export default function CalendarScreen() {
               </Pressable>
             )
           )}
-        </View>
+        </Animated.View>
 
         {selected && (
-          <View style={styles.dayPanel}>
+          <Animated.View key={selected} entering={FadeInDown.duration(200)} style={styles.dayPanel}>
             <Text style={styles.dayPanelTitle}>
               {selected === today ? 'TODAY' : selected} ·{' '}
               {selectedMeals.length > 0
@@ -132,7 +140,7 @@ export default function CalendarScreen() {
                 {m.itemCount > 1 && <Text style={styles.mealBreakdown}>{m.itemSummary}</Text>}
               </View>
             ))}
-          </View>
+          </Animated.View>
         )}
       </ScrollView>
 

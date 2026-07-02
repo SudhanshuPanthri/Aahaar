@@ -5,6 +5,7 @@
  */
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown, FadeOut, LinearTransition, ZoomIn } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { type Estimate } from '../estimate/resolve';
 import { parseMeal } from '../ai/parseMeal';
@@ -32,6 +33,7 @@ import {
 } from '../db/savedMeals';
 import { ProgressBar, MacroStat } from '../ui/Progress';
 import ManualEntry from './ManualEntry';
+import PressableScale from '../ui/PressableScale';
 import { FONT, useTheme, type Palette } from '../ui/theme';
 
 /** "2" for whole numbers, "1.5" / "0.5" otherwise. */
@@ -194,10 +196,10 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
           <View style={styles.todayLabelRow}>
             <Text style={styles.todayLabel}>TODAY</Text>
             {streak > 1 && (
-              <View style={styles.streakBadge}>
+              <Animated.View entering={ZoomIn.duration(200)} style={styles.streakBadge}>
                 <Ionicons name="flame" size={12} color={colors.calories} />
                 <Text style={styles.streakText}>{streak}-day streak</Text>
-              </View>
+              </Animated.View>
             )}
           </View>
           {goal ? (
@@ -239,14 +241,14 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
           multiline
         />
         <View style={styles.btnRow}>
-          <Pressable style={[styles.btn, { flex: 1 }, busy && styles.btnDisabled]} onPress={onEstimate} disabled={busy}>
+          <PressableScale style={[styles.btn, { flex: 1 }, busy ? styles.btnDisabled : null]} onPress={onEstimate} disabled={busy}>
             <Text style={styles.btnText}>{busy ? 'Estimating…' : 'Estimate'}</Text>
-          </Pressable>
+          </PressableScale>
           {/* Manual entry: log with your own numbers (labels, packaged foods). */}
-          <Pressable style={styles.manualBtn} onPress={() => setManualOpen(true)}>
+          <PressableScale style={styles.manualBtn} onPress={() => setManualOpen(true)}>
             <Ionicons name="create-outline" size={18} color={colors.calories} />
             <Text style={styles.manualText}>Manual</Text>
-          </Pressable>
+          </PressableScale>
         </View>
         {via && (
           <Text style={styles.dim}>
@@ -266,10 +268,10 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
           >
             {saved.map((m) => (
               <View key={m.id} style={styles.chip}>
-                <Pressable style={styles.chipMain} onPress={() => onLogSaved(m)}>
+                <PressableScale style={styles.chipMain} onPress={() => onLogSaved(m)}>
                   <Text style={styles.chipName} numberOfLines={1}>{m.name}</Text>
                   <Text style={styles.chipKcal}>{m.calories} kcal</Text>
-                </Pressable>
+                </PressableScale>
                 <Pressable hitSlop={8} onPress={() => onDeleteSaved(m)}>
                   <Text style={styles.chipDel}>✕</Text>
                 </Pressable>
@@ -284,7 +286,7 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
           <>
             <Text style={styles.sectionLabel}>THIS MEAL (not saved yet)</Text>
             {/* Lead with the meal the user typed + its total; breakdown is secondary. */}
-            <View style={styles.card}>
+            <Animated.View entering={FadeInDown.duration(200)} style={styles.card}>
               <View style={styles.mealTitleRow}>
                 <Text style={[styles.food, { flex: 1 }]}>{text.trim()}</Text>
                 {/* Star = save this meal for one-tap re-logging later. */}
@@ -306,7 +308,7 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
                 {alreadySaved ? 'Saved ★ — tap a chip anytime to re-log' : 'Tap ☆ to save this meal'}
                 {rows.some((r) => r.estimatedBy === 'ai') ? ' · some items AI-estimated' : ''}
               </Text>
-            </View>
+            </Animated.View>
           </>
         ) : meals.length > 0 ? (
           <>
@@ -317,7 +319,15 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
               return (
                 <Fragment key={m.key}>
                 {showSlot && <Text style={styles.slotLabel}>{m.mealSlot!.toUpperCase()}</Text>}
-                <View style={styles.card}>
+                {/* Entering/exiting fades make add/delete feel smooth; the layout
+                    transition animates the card's height on expand/collapse and
+                    lets remaining cards slide up after a delete. */}
+                <Animated.View
+                  entering={FadeIn.duration(200)}
+                  exiting={FadeOut.duration(150)}
+                  layout={LinearTransition.duration(200)}
+                  style={styles.card}
+                >
                   <View style={styles.rowCard}>
                     {/* Tapping the meal expands it into editable items. */}
                     <Pressable style={{ flex: 1 }} onPress={() => setExpandedKey(expanded ? null : m.key)}>
@@ -335,7 +345,7 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
                     </Pressable>
                   </View>
                   {expanded && (
-                    <View style={styles.itemList}>
+                    <Animated.View entering={FadeIn.duration(180)} style={styles.itemList}>
                       {m.items.map((it) => (
                         <View key={it.id} style={styles.itemRow}>
                           <Text style={styles.itemName} numberOfLines={1}>
@@ -359,9 +369,9 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
                         </View>
                       ))}
                       <Text style={styles.itemHint}>− / + adjusts quantity · calories & macros rescale</Text>
-                    </View>
+                    </Animated.View>
                   )}
-                </View>
+                </Animated.View>
                 </Fragment>
               );
             })}
@@ -375,9 +385,9 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
 
       {showEstimate && (
         <View style={styles.footer}>
-          <Pressable style={[styles.addBtn, !canAdd && styles.btnDisabled]} onPress={onAdd} disabled={!canAdd}>
+          <PressableScale style={[styles.addBtn, !canAdd ? styles.btnDisabled : null]} onPress={onAdd} disabled={!canAdd}>
             <Text style={styles.addBtnText}>Add to today · {total.cal} kcal</Text>
-          </Pressable>
+          </PressableScale>
         </View>
       )}
 
