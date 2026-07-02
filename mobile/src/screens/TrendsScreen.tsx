@@ -4,7 +4,8 @@
  */
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { getAverages, getDailyTotalsInRange, shiftLocalDate } from '../db/stats';
+import { Ionicons } from '@expo/vector-icons';
+import { getAverages, getDailyTotalsInRange, getLoggingStreak, shiftLocalDate } from '../db/stats';
 import { todayLocalDate } from '../db/log';
 import { getActiveGoal } from '../db/profile';
 import { COLORS, FONT } from '../ui/theme';
@@ -34,6 +35,15 @@ export default function TrendsScreen() {
   const maxKcal = Math.max(goal?.targetCalories ?? 0, ...week.map((d) => d.kcal), 1);
   const target = goal?.targetCalories ?? 0;
 
+  const streak = useMemo(() => getLoggingStreak(), []);
+  // Logged days in the window that landed at/under the calorie goal (5% grace).
+  const withinGoalDays = useMemo(() => {
+    if (target <= 0) return 0;
+    const end = todayLocalDate();
+    return getDailyTotalsInRange(shiftLocalDate(end, -(win - 1)), end).filter((r) => r.calories <= target * 1.05)
+      .length;
+  }, [win, target]);
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.h1}>Trends</Text>
@@ -51,6 +61,21 @@ export default function TrendsScreen() {
         <Text style={styles.empty}>No data in this window yet. Log some meals to see trends.</Text>
       ) : (
         <>
+          <View style={styles.tileRow}>
+            <View style={styles.tile}>
+              <Ionicons name="flame" size={18} color={COLORS.calories} />
+              <Text style={styles.tileVal}>{streak}</Text>
+              <Text style={styles.tileLabel}>day streak</Text>
+            </View>
+            {target > 0 && (
+              <View style={styles.tile}>
+                <Ionicons name="checkmark-circle" size={18} color={COLORS.protein} />
+                <Text style={styles.tileVal}>{withinGoalDays}</Text>
+                <Text style={styles.tileLabel}>days within goal</Text>
+              </View>
+            )}
+          </View>
+
           <View style={styles.avgCard}>
             <Text style={styles.avgLabel}>AVG / LOGGED DAY</Text>
             <Text style={styles.avgCal}>{avg.avgCalories.toLocaleString()} kcal</Text>
@@ -103,6 +128,14 @@ const styles = StyleSheet.create({
   segBtnActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
   segText: { fontSize: 14, fontFamily: FONT.semibold, color: '#888' },
   segTextActive: { color: COLORS.ink },
+
+  tileRow: { flexDirection: 'row', gap: 12 },
+  tile: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: COLORS.card, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 14,
+  },
+  tileVal: { fontSize: 20, fontFamily: FONT.bold, color: COLORS.ink },
+  tileLabel: { flexShrink: 1, fontSize: 12, fontFamily: FONT.regular, color: COLORS.dim },
 
   avgCard: { backgroundColor: COLORS.card, borderRadius: 14, padding: 18, gap: 4 },
   avgLabel: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.dim, letterSpacing: 1 },

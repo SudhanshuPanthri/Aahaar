@@ -99,6 +99,28 @@ export function deleteLogItem(id: number): void {
 }
 
 /**
+ * Change a logged item's quantity. Macros were snapshotted at save time, so we
+ * rescale them proportionally (newQty/oldQty) — no re-resolution, no AI.
+ */
+export function updateLogItemQuantity(id: number, quantity: number): void {
+  const row = db.select().from(logItem).where(eq(logItem.id, id)).get();
+  if (!row || quantity <= 0 || row.quantity <= 0 || quantity === row.quantity) return;
+  const k = quantity / row.quantity;
+  db.update(logItem)
+    .set({
+      quantity,
+      grams: row.grams == null ? null : row.grams * k,
+      calories: row.calories * k,
+      proteinG: row.proteinG * k,
+      carbsG: row.carbsG * k,
+      fatG: row.fatG * k,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(logItem.id, id))
+    .run();
+}
+
+/**
  * A meal = the set of items saved together in one "Add to today" (they share an
  * exact `loggedAt` timestamp). This is what the user sees — the line they typed,
  * not each parsed ingredient.
@@ -114,6 +136,7 @@ export type Meal = {
   carbs: number;
   fat: number;
   itemCount: number;
+  items: LogItem[]; // the underlying rows, for expand/edit
 };
 
 /** Today's log grouped into meals (oldest first). */
@@ -140,6 +163,7 @@ export function getDayMeals(localDate = todayLocalDate()): Meal[] {
       carbs: +group.reduce((s, g) => s + g.carbsG, 0).toFixed(1),
       fat: +group.reduce((s, g) => s + g.fatG, 0).toFixed(1),
       itemCount: group.length,
+      items: group,
     });
   }
   return meals.sort((a, b) => a.loggedAt.localeCompare(b.loggedAt));

@@ -58,6 +58,18 @@ export function restoreBackup(parsed: any): RestoreSummary {
   const d = parsed.data ?? {};
   const rows = (x: unknown): any[] => (Array.isArray(x) ? x : []);
 
+  // Wrap each table's insert so a failure says WHICH table/row broke, not just
+  // a bare SQLite error (transaction still rolls everything back).
+  const insertAll = (label: string, table: any, data: unknown[]) => {
+    data.forEach((r, i) => {
+      try {
+        db.insert(table).values(r as any).run();
+      } catch (e: any) {
+        throw new Error(`Restore failed at ${label} row ${i + 1} of ${data.length}: ${e?.message ?? e}`);
+      }
+    });
+  };
+
   expo.withTransactionSync(() => {
     // Clear existing user data (child-first ordering is moot — no FKs between these).
     db.delete(logItem).run();
@@ -66,11 +78,11 @@ export function restoreBackup(parsed: any): RestoreSummary {
     db.delete(weightLog).run();
     db.delete(profile).run();
 
-    rows(d.profile).forEach((r) => db.insert(profile).values(r).run());
-    rows(d.goal).forEach((r) => db.insert(goal).values(r).run());
-    rows(d.weight_log).forEach((r) => db.insert(weightLog).values(r).run());
-    rows(d.log_item).forEach((r) => db.insert(logItem).values(r).run());
-    rows(d.saved_meal).forEach((r) => db.insert(savedMeal).values(r).run());
+    insertAll('profile', profile, rows(d.profile));
+    insertAll('goal', goal, rows(d.goal));
+    insertAll('weight_log', weightLog, rows(d.weight_log));
+    insertAll('log_item', logItem, rows(d.log_item));
+    insertAll('saved_meal', savedMeal, rows(d.saved_meal));
   });
 
   return {

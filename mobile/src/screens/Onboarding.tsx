@@ -32,7 +32,7 @@ function num(s: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-export default function Onboarding({ onDone }: { onDone: () => void }) {
+export default function Onboarding({ onDone, onCancel }: { onDone: () => void; onCancel?: () => void }) {
   const existingProfile = getProfile();
   const existingGoal = getActiveGoal();
   const existingWeight = getLatestWeight();
@@ -95,6 +95,11 @@ export default function Onboarding({ onDone }: { onDone: () => void }) {
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {onCancel && (
+          <Pressable onPress={onCancel} hitSlop={8} style={styles.cancelBtn}>
+            <Text style={styles.cancelText}>‹ Cancel</Text>
+          </Pressable>
+        )}
         <Text style={styles.h1}>{isEdit ? 'Edit your goal' : 'Welcome to Aahaar'}</Text>
         <Text style={styles.sub}>
           {isEdit ? 'Update your details to recalculate your target.' : "Let's set a daily calorie & macro target."}
@@ -211,7 +216,9 @@ function Field({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 24, paddingTop: 72, paddingBottom: 48, gap: 12 },
+  content: { padding: 24, paddingTop: 60, paddingBottom: 48, gap: 12 },
+  cancelBtn: { alignSelf: 'flex-start', marginBottom: 4 },
+  cancelText: { fontSize: 16, fontFamily: FONT.semibold, color: '#e07a3f' },
   h1: { fontSize: 30, fontFamily: FONT.bold, color: '#1a1a1a', letterSpacing: -0.5 },
   sub: { fontSize: 15, fontFamily: FONT.regular, color: '#666', marginBottom: 8 },
   label: { fontSize: 13, fontFamily: FONT.semibold, color: '#888', marginTop: 8 },

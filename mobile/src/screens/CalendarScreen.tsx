@@ -1,11 +1,12 @@
 /**
  * Calendar tab — a month grid showing per-day calories, coloured vs the goal.
- * Tap ‹ / › to change month. Purely local reads; no network.
+ * Tap ‹ / › to change month; tap a day to see the meals logged that day.
+ * Purely local reads; no network.
  */
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { getDailyTotalsInRange } from '../db/stats';
-import { todayLocalDate } from '../db/log';
+import { getDayMeals, todayLocalDate } from '../db/log';
 import { getActiveGoal } from '../db/profile';
 import { COLORS, FONT } from '../ui/theme';
 
@@ -17,8 +18,11 @@ export default function CalendarScreen() {
   const today = todayLocalDate();
   const [y0, m0] = today.split('-').map(Number);
   const [cursor, setCursor] = useState({ year: y0, month: m0 }); // month is 1-based
+  const [selected, setSelected] = useState<string | null>(null); // "YYYY-MM-DD"
   const goal = useMemo(() => getActiveGoal(), []);
   const target = goal?.targetCalories ?? 0;
+
+  const selectedMeals = useMemo(() => (selected ? getDayMeals(selected) : []), [selected]);
 
   const { cells, monthTotal, loggedDays } = useMemo(() => {
     const { year, month } = cursor;
@@ -44,6 +48,7 @@ export default function CalendarScreen() {
   }, [cursor]);
 
   function shiftMonth(delta: number) {
+    setSelected(null);
     setCursor((c) => {
       const m = c.month + delta;
       if (m < 1) return { year: c.year - 1, month: 12 };
@@ -83,17 +88,48 @@ export default function CalendarScreen() {
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={styles.grid}>
-        {cells.map((c, i) =>
-          c === null ? (
-            <View key={`b${i}`} style={styles.cell} />
-          ) : (
-            <View key={c.date} style={[styles.cell, c.date === today && styles.todayCell]}>
-              <View style={[styles.dot, { backgroundColor: cellColor(c.kcal) }]} />
-              <Text style={[styles.dayNum, c.date === today && styles.todayNum]}>{c.day}</Text>
-              {c.kcal > 0 && <Text style={styles.kcal}>{c.kcal}</Text>}
-            </View>
-          )
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.grid}>
+          {cells.map((c, i) =>
+            c === null ? (
+              <View key={`b${i}`} style={styles.cell} />
+            ) : (
+              <Pressable
+                key={c.date}
+                style={[
+                  styles.cell,
+                  c.date === today && styles.todayCell,
+                  c.date === selected && styles.selectedCell,
+                ]}
+                onPress={() => setSelected((s) => (s === c.date ? null : c.date))}
+              >
+                <View style={[styles.dot, { backgroundColor: cellColor(c.kcal) }]} />
+                <Text style={[styles.dayNum, c.date === today && styles.todayNum]}>{c.day}</Text>
+                {c.kcal > 0 && <Text style={styles.kcal}>{c.kcal}</Text>}
+              </Pressable>
+            )
+          )}
+        </View>
+
+        {selected && (
+          <View style={styles.dayPanel}>
+            <Text style={styles.dayPanelTitle}>
+              {selected === today ? 'TODAY' : selected} ·{' '}
+              {selectedMeals.length > 0
+                ? `${Math.round(selectedMeals.reduce((s, m) => s + m.calories, 0))} kcal`
+                : 'nothing logged'}
+            </Text>
+            {selectedMeals.map((m) => (
+              <View key={m.key} style={styles.mealCard}>
+                <Text style={styles.mealTitle}>{m.title}</Text>
+                <Text style={styles.mealMacros}>
+                  {m.calories} kcal · P {m.protein} · C {m.carbs} · F {m.fat}
+                  {m.mealSlot ? ` · ${m.mealSlot}` : ''}
+                </Text>
+                {m.itemCount > 1 && <Text style={styles.mealBreakdown}>{m.itemSummary}</Text>}
+              </View>
+            ))}
+          </View>
         )}
       </ScrollView>
 
@@ -132,9 +168,18 @@ const styles = StyleSheet.create({
   month: { fontSize: 18, fontFamily: FONT.semibold, color: COLORS.ink },
   weekRow: { flexDirection: 'row' },
   weekday: { width: `${100 / 7}%`, textAlign: 'center', fontSize: 12, fontFamily: FONT.semibold, color: COLORS.dim },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingTop: 6 },
+  scrollContent: { paddingTop: 6, paddingBottom: 12 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', gap: 1 },
   todayCell: { backgroundColor: COLORS.card, borderRadius: 10 },
+  selectedCell: { borderWidth: 1.5, borderColor: COLORS.calories, borderRadius: 10 },
+
+  dayPanel: { marginTop: 12, gap: 8 },
+  dayPanelTitle: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.dim, letterSpacing: 1 },
+  mealCard: { backgroundColor: COLORS.card, borderRadius: 12, padding: 12 },
+  mealTitle: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.ink },
+  mealMacros: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.sub, marginTop: 3 },
+  mealBreakdown: { fontSize: 11, fontFamily: FONT.regular, color: COLORS.dim, marginTop: 3 },
   dot: { width: 6, height: 6, borderRadius: 3 },
   dayNum: { fontSize: 14, fontFamily: FONT.semibold, color: COLORS.ink },
   todayNum: { color: COLORS.calories },

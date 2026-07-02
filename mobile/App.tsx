@@ -32,8 +32,18 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [editingGoal, setEditingGoal] = useState(false); // true = opened via "Edit goal" (cancelable)
   const [tab, setTab] = useState<Tab>('log');
   const [dataEpoch, setDataEpoch] = useState(0); // bump to remount screens (e.g. after import)
+
+  function openEditGoal() {
+    setEditingGoal(true);
+    setNeedsOnboarding(true);
+  }
+  function closeOnboarding() {
+    setNeedsOnboarding(false);
+    setEditingGoal(false);
+  }
 
   // After a backup import, re-check onboarding and force screens to re-read the DB.
   function onImported() {
@@ -75,21 +85,20 @@ export default function App() {
   }
 
   // Onboarding / edit-goal takes over the whole screen. On return, tabs remount
-  // (fresh DB reads), so an edited goal shows up immediately.
+  // (fresh DB reads), so an edited goal shows up immediately. When opened via
+  // "Edit goal" it's cancelable; first-run onboarding must be completed.
   if (needsOnboarding) {
-    return <Onboarding onDone={() => setNeedsOnboarding(false)} />;
+    return <Onboarding onDone={closeOnboarding} onCancel={editingGoal ? closeOnboarding : undefined} />;
   }
 
   return (
     <View style={styles.root}>
       <StatusBar style="auto" />
       <View style={styles.body} key={dataEpoch}>
-        {tab === 'log' && <LogScreen onEditGoal={() => setNeedsOnboarding(true)} />}
+        {tab === 'log' && <LogScreen onEditGoal={openEditGoal} />}
         {tab === 'calendar' && <CalendarScreen />}
         {tab === 'trends' && <TrendsScreen />}
-        {tab === 'settings' && (
-          <SettingsScreen onEditGoal={() => setNeedsOnboarding(true)} onImported={onImported} />
-        )}
+        {tab === 'settings' && <SettingsScreen onEditGoal={openEditGoal} onImported={onImported} />}
       </View>
 
       <View style={styles.tabBar}>

@@ -3,15 +3,25 @@
  * Shows the TODAY card (progress vs goal) and today's logged items (with delete).
  * Self-contained: reads its own data from the DB on mount / after each change.
  */
-import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Fragment, useEffect, useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { type Estimate } from '../estimate/resolve';
 import { parseMeal } from '../ai/parseMeal';
 import { estimateMeal } from '../estimate/estimateMeal';
-import { addLogItems, getDayTotals, getDayMeals, deleteMeal, type DayTotals, type Meal } from '../db/log';
-import { type Goal, type SavedMeal } from '../db/schema';
+import {
+  addLogItems,
+  getDayTotals,
+  getDayMeals,
+  deleteMeal,
+  deleteLogItem,
+  updateLogItemQuantity,
+  type DayTotals,
+  type Meal,
+} from '../db/log';
+import { type Goal, type LogItem, type SavedMeal } from '../db/schema';
 import { getActiveGoal } from '../db/profile';
+import { getLoggingStreak } from '../db/stats';
 import {
   saveMeal,
   saveMealFromLog,
@@ -22,6 +32,9 @@ import {
 } from '../db/savedMeals';
 import { ProgressBar, MacroStat } from '../ui/Progress';
 import { COLORS, FONT } from '../ui/theme';
+
+/** "2" for whole numbers, "1.5" / "0.5" otherwise. */
+const fmtQty = (q: number) => (Number.isInteger(q) ? String(q) : String(+q.toFixed(2)));
 
 export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
   const [text, setText] = useState('');
@@ -34,12 +47,15 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [saved, setSaved] = useState<SavedMeal[]>([]);
   const [justSaved, setJustSaved] = useState(false);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [streak, setStreak] = useState(0);
 
   function refresh() {
     setToday(getDayTotals());
     setMeals(getDayMeals());
     setGoal(getActiveGoal());
     setSaved(listSavedMeals());
+    setStreak(getLoggingStreak());
   }
 
   useEffect(refresh, []);
@@ -100,13 +116,44 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
     refresh();
   }
 
-  function onDeleteSaved(id: number) {
-    deleteSavedMeal(id);
-    setSaved(listSavedMeals());
+  function onDeleteSaved(meal: SavedMeal) {
+    Alert.alert('Remove saved meal?', `“${meal.name}” will be removed from your saved meals.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: () => {
+          deleteSavedMeal(meal.id);
+          setSaved(listSavedMeals());
+        },
+      },
+    ]);
   }
 
-  function onDeleteMeal(loggedAt: string) {
-    deleteMeal(loggedAt);
+  function onDeleteMeal(m: Meal) {
+    Alert.alert('Delete this meal?', `“${m.title}” (${m.calories} kcal) will be removed from today's log.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          deleteMeal(m.key);
+          refresh();
+        },
+      },
+    ]);
+  }
+
+  /** Step an item's quantity: +1 / −1, with a 0.5 stop between 1 and nothing. */
+  function onStepQty(it: LogItem, dir: 1 | -1) {
+    const next = dir === 1 ? (it.quantity < 1 ? 1 : it.quantity + 1) : it.quantity > 1 ? it.quantity - 1 : 0.5;
+    updateLogItemQuantity(it.id, next);
+    refresh();
+  }
+
+  /** Remove one item from a logged meal (removing the last item removes the meal). */
+  function onDeleteItem(id: number) {
+    deleteLogItem(id);
     refresh();
   }
 
@@ -139,12 +186,25 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
         </View>
 
         <View style={styles.todayCard}>
-          <Text style={styles.todayLabel}>TODAY</Text>
+          <View style={styles.todayLabelRow}>
+            <Text style={styles.todayLabel}>TODAY</Text>
+            {streak > 1 && (
+              <View style={styles.streakBadge}>
+                <Ionicons name="flame" size={12} color={COLORS.calories} />
+                <Text style={styles.streakText}>{streak}-day streak</Text>
+              </View>
+            )}
+          </View>
           {goal ? (
             <>
               <Text style={styles.todayCal}>
                 {today.calories}
                 <Text style={styles.todayGoal}> / {Math.round(goal.targetCalories)} kcal</Text>
+                <Text style={today.calories > goal.targetCalories ? styles.todayOver : styles.todayLeft}>
+                  {today.calories > goal.targetCalories
+                    ? `  ${Math.round(today.calories - goal.targetCalories)} over`
+                    : `  ${Math.round(goal.targetCalories - today.calories)} left`}
+                </Text>
               </Text>
               <ProgressBar value={today.calories} goal={goal.targetCalories} color={COLORS.calories} />
               <View style={styles.macroGrid}>
@@ -197,7 +257,7 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
                   <Text style={styles.chipName} numberOfLines={1}>{m.name}</Text>
                   <Text style={styles.chipKcal}>{m.calories} kcal</Text>
                 </Pressable>
-                <Pressable hitSlop={8} onPress={() => onDeleteSaved(m.id)}>
+                <Pressable hitSlop={8} onPress={() => onDeleteSaved(m)}>
                   <Text style={styles.chipDel}>✕</Text>
                 </Pressable>
               </View>
@@ -238,24 +298,60 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
         ) : meals.length > 0 ? (
           <>
             <Text style={styles.sectionLabel}>TODAY'S LOG</Text>
-            {meals.map((m) => (
-              <View key={m.key} style={[styles.card, styles.rowCard]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.food}>{m.title}</Text>
-                  <Text style={styles.macros}>
-                    {m.calories} kcal · P {m.protein} · C {m.carbs} · F {m.fat}
-                    {m.mealSlot ? ` · ${m.mealSlot}` : ''}
-                  </Text>
-                  {m.itemCount > 1 && <Text style={styles.breakdown}>{m.itemSummary}</Text>}
+            {meals.map((m, i) => {
+              const expanded = expandedKey === m.key;
+              const showSlot = !!m.mealSlot && (i === 0 || meals[i - 1].mealSlot !== m.mealSlot);
+              return (
+                <Fragment key={m.key}>
+                {showSlot && <Text style={styles.slotLabel}>{m.mealSlot!.toUpperCase()}</Text>}
+                <View style={styles.card}>
+                  <View style={styles.rowCard}>
+                    {/* Tapping the meal expands it into editable items. */}
+                    <Pressable style={{ flex: 1 }} onPress={() => setExpandedKey(expanded ? null : m.key)}>
+                      <Text style={styles.food}>{m.title}</Text>
+                      <Text style={styles.macros}>
+                        {m.calories} kcal · P {m.protein} · C {m.carbs} · F {m.fat}
+                      </Text>
+                      {!expanded && m.itemCount > 1 && <Text style={styles.breakdown}>{m.itemSummary}</Text>}
+                    </Pressable>
+                    <Pressable hitSlop={8} onPress={() => onSaveLoggedMeal(m)} disabled={isSaved(m.title)}>
+                      <Ionicons name={isSaved(m.title) ? 'star' : 'star-outline'} size={20} color={COLORS.calories} />
+                    </Pressable>
+                    <Pressable hitSlop={10} onPress={() => onDeleteMeal(m)}>
+                      <Text style={styles.del}>✕</Text>
+                    </Pressable>
+                  </View>
+                  {expanded && (
+                    <View style={styles.itemList}>
+                      {m.items.map((it) => (
+                        <View key={it.id} style={styles.itemRow}>
+                          <Text style={styles.itemName} numberOfLines={1}>
+                            {it.foodName} <Text style={styles.itemUnit}>({it.unit})</Text>
+                          </Text>
+                          <Text style={styles.itemKcal}>{Math.round(it.calories)} kcal</Text>
+                          <Pressable hitSlop={6} onPress={() => onStepQty(it, -1)} disabled={it.quantity <= 0.5}>
+                            <Ionicons
+                              name="remove-circle-outline"
+                              size={24}
+                              color={it.quantity <= 0.5 ? '#d5d5da' : COLORS.calories}
+                            />
+                          </Pressable>
+                          <Text style={styles.itemQty}>{fmtQty(it.quantity)}</Text>
+                          <Pressable hitSlop={6} onPress={() => onStepQty(it, 1)}>
+                            <Ionicons name="add-circle-outline" size={24} color={COLORS.calories} />
+                          </Pressable>
+                          <Pressable hitSlop={8} onPress={() => onDeleteItem(it.id)}>
+                            <Ionicons name="trash-outline" size={18} color="#bbb" />
+                          </Pressable>
+                        </View>
+                      ))}
+                      <Text style={styles.itemHint}>− / + adjusts quantity · calories & macros rescale</Text>
+                    </View>
+                  )}
                 </View>
-                <Pressable hitSlop={8} onPress={() => onSaveLoggedMeal(m)} disabled={isSaved(m.title)}>
-                  <Ionicons name={isSaved(m.title) ? 'star' : 'star-outline'} size={20} color={COLORS.calories} />
-                </Pressable>
-                <Pressable hitSlop={10} onPress={() => onDeleteMeal(m.key)}>
-                  <Text style={styles.del}>✕</Text>
-                </Pressable>
-              </View>
-            ))}
+                </Fragment>
+              );
+            })}
           </>
         ) : (
           <Text style={[styles.dim, { textAlign: 'center', marginTop: 24 }]}>
@@ -284,8 +380,16 @@ const styles = StyleSheet.create({
   dim: { fontSize: 13, fontFamily: FONT.regular, color: '#888' },
   sectionLabel: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.dim, letterSpacing: 1, marginBottom: 2 },
 
-  todayCard: { backgroundColor: COLORS.card, borderRadius: 14, padding: 16, gap: 8 },
+  todayCard: {
+    backgroundColor: COLORS.card, borderRadius: 14, padding: 16, gap: 8,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2,
+  },
+  todayLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   todayLabel: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.dim, letterSpacing: 1 },
+  streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  streakText: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.calories },
+  todayLeft: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.protein, letterSpacing: 0 },
+  todayOver: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.danger, letterSpacing: 0 },
   todayCal: { fontSize: 28, fontFamily: FONT.bold, color: COLORS.ink, marginTop: 2, letterSpacing: -0.5 },
   todayGoal: { fontSize: 16, fontFamily: FONT.regular, color: COLORS.dim, letterSpacing: 0 },
   todayMacros: { fontSize: 13, fontFamily: FONT.regular, color: COLORS.sub, marginTop: 2 },
@@ -302,7 +406,11 @@ const styles = StyleSheet.create({
 
   list: { flex: 1, marginTop: 10 },
   listContent: { paddingHorizontal: 20, gap: 10, paddingBottom: 16 },
-  card: { backgroundColor: COLORS.card, borderRadius: 12, padding: 14 },
+  card: {
+    backgroundColor: COLORS.card, borderRadius: 12, padding: 14,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 1 }, elevation: 1,
+  },
+  slotLabel: { fontSize: 10, fontFamily: FONT.semibold, color: COLORS.dim, letterSpacing: 1.2, marginTop: 6, marginBottom: -4 },
   rowCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   food: { fontSize: 16, fontFamily: FONT.semibold, color: COLORS.ink },
   mealTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -310,6 +418,14 @@ const styles = StyleSheet.create({
   mealTotal: { fontSize: 14, fontFamily: FONT.semibold, color: COLORS.calories, marginTop: 4 },
   breakdown: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.dim, marginTop: 4 },
   del: { fontSize: 18, fontFamily: FONT.regular, color: '#bbb', paddingHorizontal: 4 },
+
+  itemList: { marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: COLORS.border, gap: 8 },
+  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  itemName: { flex: 1, fontSize: 14, fontFamily: FONT.regular, color: COLORS.ink },
+  itemUnit: { fontSize: 12, color: COLORS.dim },
+  itemKcal: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.sub, marginRight: 2 },
+  itemQty: { minWidth: 28, textAlign: 'center', fontSize: 15, fontFamily: FONT.semibold, color: COLORS.ink },
+  itemHint: { fontSize: 11, fontFamily: FONT.regular, color: COLORS.dim, marginTop: 2 },
 
   footer: {
     paddingHorizontal: 16, paddingTop: 10, paddingBottom: 20, gap: 10,

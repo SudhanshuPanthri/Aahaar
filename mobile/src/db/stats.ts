@@ -41,6 +41,22 @@ export function getDailyTotalsInRange(startDate: string, endDate: string): DayRo
   }));
 }
 
+/**
+ * Consecutive days with at least one logged item, ending today. A not-yet-logged
+ * today doesn't break the streak (the day isn't over) — it just doesn't count.
+ */
+export function getLoggingStreak(end = todayLocalDate()): number {
+  const start = shiftLocalDate(end, -365);
+  const logged = new Set(getDailyTotalsInRange(start, end).map((r) => r.localDate));
+  let streak = 0;
+  let cursor = logged.has(end) ? end : shiftLocalDate(end, -1);
+  while (logged.has(cursor)) {
+    streak++;
+    cursor = shiftLocalDate(cursor, -1);
+  }
+  return streak;
+}
+
 export type Averages = {
   avgCalories: number;
   avgProtein: number;

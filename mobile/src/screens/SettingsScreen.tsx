@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { exportBackup, importBackup } from '../backup/backupFile';
+import { shareBackup, saveBackupToFolder, canSaveToFolder, importBackup } from '../backup/backupFile';
 import { COLORS, FONT } from '../ui/theme';
 
 export default function SettingsScreen({
@@ -18,16 +18,41 @@ export default function SettingsScreen({
 }) {
   const [busy, setBusy] = useState<null | 'export' | 'import'>(null);
 
-  async function onExport() {
-    if (busy) return;
+  async function runShare() {
     setBusy('export');
     try {
-      const { shared, fileName } = await exportBackup();
-      if (!shared) Alert.alert('Backup saved', `Saved ${fileName} to the app's storage.`);
+      await shareBackup();
     } catch (e: any) {
       Alert.alert('Export failed', String(e?.message ?? e));
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function runSaveToFolder() {
+    setBusy('export');
+    try {
+      const { saved, fileName } = await saveBackupToFolder();
+      if (saved) Alert.alert('Backup saved', `Saved ${fileName} to the folder you chose.`);
+    } catch (e: any) {
+      Alert.alert('Save failed', String(e?.message ?? e));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function onExport() {
+    if (busy) return;
+    // Android can write straight to a chosen folder (no share). On iOS the share
+    // sheet itself offers "Save to Files", so we open it directly.
+    if (canSaveToFolder) {
+      Alert.alert('Export backup', 'Save the backup to your device, or share it.', [
+        { text: 'Save to device', onPress: runSaveToFolder },
+        { text: 'Share…', onPress: runShare },
+        { text: 'Cancel', style: 'cancel' },
+      ]);
+    } else {
+      runShare();
     }
   }
 
@@ -73,7 +98,7 @@ export default function SettingsScreen({
       <Row
         icon="cloud-upload-outline"
         label="Export backup"
-        sub="Save a backup file to Drive, iCloud or Files"
+        sub={canSaveToFolder ? 'Save to a folder on your device, or share' : 'Use “Save to Files”, iCloud, Drive, or share'}
         onPress={onExport}
         loading={busy === 'export'}
       />
