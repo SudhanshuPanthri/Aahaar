@@ -186,7 +186,11 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Text style={styles.h1}>Aahaar</Text>
+          {/* Brand lockup: आ renders in the system Devanagari face (Noto Sans
+              Devanagari on Android — the same font the logo is cut from). */}
+          <Text style={styles.h1} accessibilityLabel="Aahaar">
+            <Text style={styles.h1Aa}>आ</Text>haar
+          </Text>
           <Pressable hitSlop={8} onPress={onEditGoal}>
             <Text style={styles.editGoal}>Edit goal</Text>
           </Pressable>
@@ -409,6 +413,8 @@ const makeStyles = (c: Palette) => StyleSheet.create({
   header: { paddingHorizontal: 20, gap: 10 },
   titleRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   h1: { fontSize: 34, fontFamily: FONT.bold, color: c.ink, letterSpacing: -0.5 },
+  // आ can't use Inter (no Devanagari glyphs) — default font + explicit weight.
+  h1Aa: { fontFamily: undefined, fontWeight: '700', color: c.calories },
   editGoal: { fontSize: 14, fontFamily: FONT.semibold, color: c.calories },
   dim: { fontSize: 13, fontFamily: FONT.regular, color: c.mute },
   sectionLabel: { fontSize: 11, fontFamily: FONT.semibold, color: c.dim, letterSpacing: 1, marginBottom: 2 },
