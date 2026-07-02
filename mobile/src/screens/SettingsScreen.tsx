@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { shareBackup, saveBackupToFolder, canSaveToFolder, importBackup } from '../backup/backupFile';
+import { openBugReportEmail, openGithubIssues, SUPPORT_EMAIL } from '../support/bugReport';
 import PressableScale from '../ui/PressableScale';
 import { ACCENTS, ACCENT_NAMES, FONT, useTheme, type Palette, type ThemePref } from '../ui/theme';
 
@@ -97,6 +98,21 @@ export default function SettingsScreen({
     );
   }
 
+  async function onReportBug() {
+    const opened = await openBugReportEmail();
+    if (!opened) {
+      Alert.alert('No email app found', `You can email the bug to ${SUPPORT_EMAIL}, or report it on GitHub.`, [
+        { text: 'Open GitHub', onPress: () => void openGithubIssues() },
+        { text: 'OK', style: 'cancel' },
+      ]);
+    }
+  }
+
+  async function onReportGithub() {
+    const opened = await openGithubIssues();
+    if (!opened) Alert.alert('Could not open the browser', 'Please visit github.com/SudhanshuPanthri/Aahaar/issues');
+  }
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Text style={styles.h1}>Settings</Text>
@@ -158,6 +174,27 @@ export default function SettingsScreen({
       />
       <Text style={styles.note}>
         Your data stays on this device. Backups use your own cloud storage — Aahaar never sees your account.
+      </Text>
+
+      <Text style={styles.sectionLabel}>FEEDBACK</Text>
+      <Row
+        icon="bug-outline"
+        label="Report a bug"
+        sub="Opens your email app with device info pre-filled"
+        onPress={onReportBug}
+        colors={colors}
+        styles={styles}
+      />
+      <Row
+        icon="logo-github"
+        label="Report on GitHub"
+        sub="Open an issue — UI quirks or logic bugs"
+        onPress={onReportGithub}
+        colors={colors}
+        styles={styles}
+      />
+      <Text style={styles.note}>
+        Nothing is sent until you hit send — the report only includes your app version and device model.
       </Text>
     </ScrollView>
   );
