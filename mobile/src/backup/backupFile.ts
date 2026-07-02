@@ -7,7 +7,7 @@
  */
 import { Platform } from 'react-native';
 import { File, Paths } from 'expo-file-system';
-import { StorageAccessFramework } from 'expo-file-system/legacy';
+import { StorageAccessFramework, readAsStringAsync } from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { buildBackup, restoreBackup, type RestoreSummary } from '../db/backup';
@@ -54,12 +54,23 @@ export async function importBackup(): Promise<RestoreSummary | null> {
   const res = await DocumentPicker.getDocumentAsync({
     // Some providers report JSON as octet-stream; accept broadly, validate on parse.
     type: ['application/json', 'text/plain', '*/*'],
-    copyToCacheDirectory: true,
+    // Android: keep the original content:// URI. The picker's cache copy lands in a
+    // shared dir the JS sandbox can't read inside Expo Go (expo/expo#17810, #21792);
+    // the content:// URI carries an OS-granted read permission and is read via the
+    // content resolver instead. iOS needs the copy (original is security-scoped).
+    copyToCacheDirectory: Platform.OS === 'ios',
   });
   if (res.canceled || !res.assets?.[0]) return null;
 
-  const picked = new File(res.assets[0].uri);
-  const text = picked.textSync();
+  const uri = res.assets[0].uri;
+  let text: string;
+  try {
+    text = new File(uri).textSync();
+  } catch {
+    // New File API rejects URIs outside its permission map; legacy reads both
+    // file:// and content:// (SAF) via the resolver.
+    text = await readAsStringAsync(uri);
+  }
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
