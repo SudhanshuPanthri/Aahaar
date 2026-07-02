@@ -27,7 +27,7 @@ export type Estimate = {
   fat: number;
   confidence: 'high' | 'medium' | 'low';
   matched: boolean;
-  estimatedBy: 'db' | 'ai' | 'none'; // where the numbers came from
+  estimatedBy: 'db' | 'ai' | 'user' | 'none'; // where the numbers came from
 };
 
 export function resolveItem(item: ParsedItem): Estimate {

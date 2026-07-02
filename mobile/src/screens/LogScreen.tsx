@@ -31,6 +31,7 @@ import {
   deleteSavedMeal,
 } from '../db/savedMeals';
 import { ProgressBar, MacroStat } from '../ui/Progress';
+import ManualEntry from './ManualEntry';
 import { COLORS, FONT } from '../ui/theme';
 
 /** "2" for whole numbers, "1.5" / "0.5" otherwise. */
@@ -49,6 +50,7 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
   const [justSaved, setJustSaved] = useState(false);
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
   const [streak, setStreak] = useState(0);
+  const [manualOpen, setManualOpen] = useState(false);
 
   function refresh() {
     setToday(getDayTotals());
@@ -232,9 +234,16 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
           placeholderTextColor="#aaa"
           multiline
         />
-        <Pressable style={[styles.btn, busy && styles.btnDisabled]} onPress={onEstimate} disabled={busy}>
-          <Text style={styles.btnText}>{busy ? 'Estimating…' : 'Estimate'}</Text>
-        </Pressable>
+        <View style={styles.btnRow}>
+          <Pressable style={[styles.btn, { flex: 1 }, busy && styles.btnDisabled]} onPress={onEstimate} disabled={busy}>
+            <Text style={styles.btnText}>{busy ? 'Estimating…' : 'Estimate'}</Text>
+          </Pressable>
+          {/* Manual entry: log with your own numbers (labels, packaged foods). */}
+          <Pressable style={styles.manualBtn} onPress={() => setManualOpen(true)}>
+            <Ionicons name="create-outline" size={18} color={COLORS.calories} />
+            <Text style={styles.manualText}>Manual</Text>
+          </Pressable>
+        </View>
         {via && (
           <Text style={styles.dim}>
             parsed via {via === 'ai' ? 'AI' : via === 'cache' ? 'cache' : 'offline parser'} · {rows.length} item(s)
@@ -367,6 +376,16 @@ export default function LogScreen({ onEditGoal }: { onEditGoal: () => void }) {
           </Pressable>
         </View>
       )}
+
+      <ManualEntry
+        visible={manualOpen}
+        onClose={() => setManualOpen(false)}
+        onSave={(est) => {
+          addLogItems([est], est.name);
+          setManualOpen(false);
+          refresh();
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -400,7 +419,13 @@ const styles = StyleSheet.create({
     fontSize: 16, fontFamily: FONT.regular, minHeight: 64, textAlignVertical: 'top',
     color: COLORS.ink, backgroundColor: '#fff',
   },
+  btnRow: { flexDirection: 'row', gap: 10, alignItems: 'stretch' },
   btn: { backgroundColor: COLORS.calories, borderRadius: 12, padding: 15, alignItems: 'center' },
+  manualBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
+    borderWidth: 1.5, borderColor: COLORS.calories, borderRadius: 12, paddingHorizontal: 14,
+  },
+  manualText: { fontSize: 14, fontFamily: FONT.semibold, color: COLORS.calories },
   btnDisabled: { opacity: 0.5 },
   btnText: { color: '#fff', fontSize: 16, fontFamily: FONT.bold },
 

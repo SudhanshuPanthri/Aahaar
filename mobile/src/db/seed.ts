@@ -1,6 +1,8 @@
 /**
- * Loads the bundled nutrition seed into `food` / `food_portion` on first run.
- * Idempotent: no-ops if `food` already has rows.
+ * Syncs the bundled nutrition seed into `food` / `food_portion`.
+ * First run seeds everything; later runs top up any foods added to the seed
+ * since (matched by canonical name), so app updates deliver new foods to
+ * existing installs. Never overwrites or deletes existing rows.
  */
 import { sql } from 'drizzle-orm';
 import { db } from './client';
@@ -19,15 +21,21 @@ type SeedFood = {
   source?: string;
 };
 
-export function seedIfEmpty(): number {
-  const countRow = db.select({ c: sql<number>`count(*)` }).from(food).get();
-  if (countRow && countRow.c > 0) return countRow.c;
-
+export function syncSeed(): number {
   const foods = (seed as { foods: SeedFood[] }).foods;
   const now = new Date().toISOString();
 
-  foods.forEach((f, i) => {
-    const id = i + 1;
+  const existingRows = db.select({ n: food.canonicalName }).from(food).all();
+  const existing = new Set(existingRows.map((r) => r.n));
+  // Explicit ids keep portions linkable without .returning(); max+1 is safe
+  // because we only ever insert here.
+  let nextId = (db.select({ m: sql<number>`coalesce(max(${food.id}), 0)` }).from(food).get()?.m ?? 0) + 1;
+  let count = existingRows.length;
+
+  foods.forEach((f) => {
+    if (existing.has(f.canonical_name)) return;
+    const id = nextId++;
+    count++;
     db.insert(food)
       .values({
         id,
@@ -54,5 +62,5 @@ export function seedIfEmpty(): number {
     });
   });
 
-  return foods.length;
+  return count;
 }

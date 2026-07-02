@@ -48,7 +48,7 @@ export function addLogItems(estimates: Estimate[], rawText?: string, when = new 
         proteinG: e.protein,
         carbsG: e.carbs,
         fatG: e.fat,
-        source: e.estimatedBy === 'ai' ? 'ai' : 'db',
+        source: e.estimatedBy === 'ai' ? 'ai' : e.estimatedBy === 'user' ? 'user' : 'db',
         confidence: e.confidence,
         rawText: rawText ?? null,
         createdAt: loggedAt,
