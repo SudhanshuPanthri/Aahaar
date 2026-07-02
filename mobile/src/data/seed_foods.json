@@ -46,6 +46,11 @@
           "unit": "roti",
           "grams": 40,
           "is_default": true
+        },
+        {
+          "unit": "piece",
+          "grams": 40,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -209,6 +214,11 @@
           "unit": "piece",
           "grams": 40,
           "is_default": true
+        },
+        {
+          "unit": "plate",
+          "grams": 120,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -261,6 +271,11 @@
           "unit": "piece",
           "grams": 25,
           "is_default": true
+        },
+        {
+          "unit": "slice",
+          "grams": 25,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -447,6 +462,11 @@
           "unit": "serving",
           "grams": 50,
           "is_default": true
+        },
+        {
+          "unit": "cube",
+          "grams": 15,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -964,6 +984,11 @@
           "unit": "handful",
           "grams": 40,
           "is_default": true
+        },
+        {
+          "unit": "piece",
+          "grams": 25,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -1044,6 +1069,11 @@
           "unit": "cup",
           "grams": 150,
           "is_default": true
+        },
+        {
+          "unit": "glass",
+          "grams": 200,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -2479,6 +2509,11 @@
           "unit": "plate",
           "grams": 150,
           "is_default": true
+        },
+        {
+          "unit": "katori",
+          "grams": 150,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -2975,6 +3010,11 @@
           "unit": "roti",
           "grams": 45,
           "is_default": true
+        },
+        {
+          "unit": "piece",
+          "grams": 45,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -3001,6 +3041,11 @@
           "unit": "roti",
           "grams": 45,
           "is_default": true
+        },
+        {
+          "unit": "piece",
+          "grams": 45,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -3027,6 +3072,11 @@
           "unit": "roti",
           "grams": 50,
           "is_default": true
+        },
+        {
+          "unit": "piece",
+          "grams": 50,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -3052,6 +3102,11 @@
           "unit": "roti",
           "grams": 45,
           "is_default": true
+        },
+        {
+          "unit": "piece",
+          "grams": 45,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -3075,6 +3130,11 @@
           "unit": "roti",
           "grams": 50,
           "is_default": true
+        },
+        {
+          "unit": "piece",
+          "grams": 50,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -3544,6 +3604,11 @@
           "unit": "slice",
           "grams": 25,
           "is_default": true
+        },
+        {
+          "unit": "piece",
+          "grams": 25,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -3567,6 +3632,11 @@
           "unit": "slice",
           "grams": 30,
           "is_default": true
+        },
+        {
+          "unit": "piece",
+          "grams": 30,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -4769,6 +4839,11 @@
           "unit": "katori",
           "grams": 100,
           "is_default": true
+        },
+        {
+          "unit": "piece",
+          "grams": 6,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -4819,6 +4894,11 @@
           "unit": "katori",
           "grams": 150,
           "is_default": true
+        },
+        {
+          "unit": "slice",
+          "grams": 150,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -5136,6 +5216,11 @@
           "unit": "katori",
           "grams": 100,
           "is_default": true
+        },
+        {
+          "unit": "piece",
+          "grams": 12,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
@@ -5458,6 +5543,11 @@
         {
           "unit": "cube",
           "grams": 25,
+          "is_default": false
+        },
+        {
+          "unit": "piece",
+          "grams": 20,
           "is_default": false
         }
       ],
@@ -6543,6 +6633,11 @@
           "unit": "slice",
           "grams": 100,
           "is_default": true
+        },
+        {
+          "unit": "piece",
+          "grams": 100,
+          "is_default": false
         }
       ],
       "source": "curated-approx"
