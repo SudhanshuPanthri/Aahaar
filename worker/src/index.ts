@@ -35,6 +35,19 @@ Work in two steps:
    1 tbsp = 15 g, 1 tsp = 7 g, 1 egg = 50 g, 1 samosa = 50 g, 1 piece mithai = 40 g, 1 idli = 40 g, 1 dosa = 100 g.
 2. "per100g": standard nutrition-table values (USDA/IFCT) per 100 g of the food AS PREPARED
    (cooked weight, including typical oil/ghee for home cooking).
+IMPORTANT — dry-base dishes: when grams are stated for a dish cooked from a dry base
+(cheela, oats, dalia, poha, soya chunks, protein powder), the grams mean the DRY main
+ingredient, not the cooked dish — return the nutrition of the dish made from that much
+dry ingredient, with "grams" = stated grams and per100g on the DRY basis. (Fitness users
+weigh the dry ingredient.) Plain rice/dal stated in grams still means cooked weight.
+Dish names take their INDIAN meaning: "cold coffee" = blended milk + sugar + coffee
+(~75 kcal/100ml), "chai" = milk tea with sugar (~60 kcal/100ml), "lassi" sweet (~90 kcal/100ml),
+"nimbu pani" with sugar (~25 kcal/100ml). Milk-based drinks are NEVER near-zero calories;
+only plain black coffee/tea without sugar is (~2 kcal/100ml, and only if stated as black).
+Anchors per 100 g: soya flour/chunks DRY 345 kcal 52 P; besan DRY 387 kcal 22 P;
+oats DRY 389 kcal 17 P; whole-milk dahi/curd 60 kcal 3.5 P; paneer 296 kcal 18 P;
+cooked rice 130 kcal 2.7 P; cooked dal 116 kcal 6 P (+ tadka fat); whole egg 143 kcal 13 P;
+full-cream milk 62 kcal 3.2 P.
 Return ONLY JSON: {"grams":number,"per100g":{"calories":number,"protein_g":number,"carbs_g":number,"fat_g":number}}
 No commentary.`;
 
