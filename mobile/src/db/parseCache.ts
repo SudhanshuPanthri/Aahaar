@@ -56,7 +56,7 @@ export function putCachedParse(norm: string, items: ParsedItem[]): void {
 // ponytail: estimates share parse_cache via a versioned key prefix — separate table if the namespaces ever clash
 // Bump the version whenever the estimate prompt changes materially, so stale cached numbers don't stick.
 function estimateKey(food: string, quantity: number, unit: string): string {
-  return `est:v2:${quantity} ${normalizeInput(unit)} ${normalizeInput(food)}`;
+  return `est:v3:${quantity} ${normalizeInput(unit)} ${normalizeInput(food)}`;
 }
 
 /** Cached AI nutrition estimate for one item, or null. */

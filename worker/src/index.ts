@@ -40,6 +40,17 @@ IMPORTANT — dry-base dishes: when grams are stated for a dish cooked from a dr
 ingredient, not the cooked dish — return the nutrition of the dish made from that much
 dry ingredient, with "grams" = stated grams and per100g on the DRY basis. (Fitness users
 weigh the dry ingredient.) Plain rice/dal stated in grams still means cooked weight.
+This dry-basis rule applies ONLY to amounts stated in g/ml. For household units
+(katori, plate, bowl, piece, serving) always use as-eaten COOKED weight and density.
+CONSISTENCY RULE: "grams" and "per100g" MUST use the same basis — both dry, or both
+as-eaten. NEVER pair a cooked portion weight with a dry-ingredient density: water
+absorbed in cooking roughly halves or thirds the per-100g values (dry poha 390 kcal/100g
+but cooked poha ~110 kcal/100g; dry oats 389 but cooked oats porridge ~70).
+Users describe food casually — fill in unstated details with the TYPICAL Indian preparation,
+never the diet version: sabzi/dal/curry cooked with normal oil/ghee (1-2 tsp per serving);
+cheela/paratha/dosa pan-fried in oil or ghee; beverages made with full-cream or toned milk
+AND sugar (2 tsp per glass) unless "black"/"no sugar" is stated; packaged snacks fried.
+When a plausible range exists, return the MIDDLE of the typical range, not the low end.
 Dish names take their INDIAN meaning: "cold coffee" = blended milk + sugar + coffee
 (~75 kcal/100ml), "chai" = milk tea with sugar (~60 kcal/100ml), "lassi" sweet (~90 kcal/100ml),
 "nimbu pani" with sugar (~25 kcal/100ml). Milk-based drinks are NEVER near-zero calories;
