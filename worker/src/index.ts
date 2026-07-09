@@ -57,8 +57,10 @@ Dish names take their INDIAN meaning: "cold coffee" = blended milk + sugar + cof
 only plain black coffee/tea without sugar is (~2 kcal/100ml, and only if stated as black).
 Anchors per 100 g: soya flour/chunks DRY 345 kcal 52 P; besan DRY 387 kcal 22 P;
 oats DRY 389 kcal 17 P; whole-milk dahi/curd 60 kcal 3.5 P; paneer 296 kcal 18 P;
-cooked rice 130 kcal 2.7 P; cooked dal 116 kcal 6 P (+ tadka fat); whole egg 143 kcal 13 P;
-full-cream milk 62 kcal 3.2 P.
+cooked rice 130 kcal 2.7 P; cooked dal 116 kcal 6 P (+ tadka fat); atta roti/chapati
+300 kcal 8 P (one 40 g roti ≈ 120 kcal); whole egg 143 kcal 13 P;
+full-cream milk 62 kcal 3.2 P; instant noodles (maggi) DRY 490 kcal 10 P
+(1 packet/serving = 70 g dry → use grams 70, per100g dry basis).
 Return ONLY JSON: {"grams":number,"per100g":{"calories":number,"protein_g":number,"carbs_g":number,"fat_g":number}}
 No commentary.`;
 
@@ -94,7 +96,7 @@ async function groqJson(env: Env, system: string, user: string): Promise<unknown
         },
         body: JSON.stringify({
           model,
-          temperature: 0.2,
+          temperature: 0, // deterministic: same food description → same numbers (results are cached client-side)
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: system },
