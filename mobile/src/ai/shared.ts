@@ -16,9 +16,21 @@ Examples:
   "chicken biryani" -> {"items":[{"food":"chicken biryani","quantity":1,"unit":"plate"}],"unparsed":[]}
 Return only JSON.`;
 
+/**
+ * Two-step estimate: portion grams, then per-100g density from food tables.
+ * Models recall per-100g values (USDA/IFCT) far more accurately than whole-portion
+ * totals; we multiply in code. Portion anchors match resolve.ts defaults.
+ */
 export const ESTIMATE_SYSTEM = `You estimate nutrition for ONE described food portion, assuming typical Indian home preparation.
-Return ONLY JSON: {"grams":number,"calories":number,"protein_g":number,"carbs_g":number,"fat_g":number}
-Values are for the WHOLE portion described (quantity × unit), not per 100g. Be realistic; no commentary.`;
+Work in two steps:
+1. "grams": total weight of the WHOLE portion (quantity × unit), as eaten.
+   Typical Indian portions: 1 katori dal/curry = 150 g, 1 katori cooked rice = 125 g, 1 katori sabzi = 120 g,
+   1 roti = 40 g, 1 paratha = 90 g, 1 plate = 220-300 g, 1 glass = 250 ml, 1 cup = 150 ml,
+   1 tbsp = 15 g, 1 tsp = 7 g, 1 egg = 50 g, 1 samosa = 50 g, 1 piece mithai = 40 g, 1 idli = 40 g, 1 dosa = 100 g.
+2. "per100g": standard nutrition-table values (USDA/IFCT) per 100 g of the food AS PREPARED
+   (cooked weight, including typical oil/ghee for home cooking).
+Return ONLY JSON: {"grams":number,"per100g":{"calories":number,"protein_g":number,"carbs_g":number,"fat_g":number}}
+No commentary.`;
 
 export type AiNutrition = {
   grams: number;
@@ -42,9 +54,23 @@ export function normalizeItems(out: any): ParsedItem[] {
 }
 
 export function normalizeNutrition(out: any): AiNutrition | null {
+  const grams = Number(out?.grams) || 0;
+  // New shape: per-100g density × grams (see ESTIMATE_SYSTEM).
+  const p = out?.per100g;
+  if (p != null && typeof p.calories === 'number') {
+    const f = grams / 100;
+    return {
+      grams,
+      calories: (Number(p.calories) || 0) * f,
+      protein_g: (Number(p.protein_g) || 0) * f,
+      carbs_g: (Number(p.carbs_g) || 0) * f,
+      fat_g: (Number(p.fat_g) || 0) * f,
+    };
+  }
+  // Legacy flat shape (whole-portion totals) — some models still answer this way.
   if (out == null || typeof out.calories !== 'number') return null;
   return {
-    grams: Number(out.grams) || 0,
+    grams,
     calories: Number(out.calories) || 0,
     protein_g: Number(out.protein_g) || 0,
     carbs_g: Number(out.carbs_g) || 0,

@@ -4,6 +4,9 @@ compatibility_date = "2024-11-01"
 
 # GROQ_API_KEY is set as a secret, not here:
 #   npx wrangler secret put GROQ_API_KEY
-# Optional model override:
+# Models: the worker tries a built-in chain (gpt-oss-120b → llama-4-scout →
+# llama-3.1-8b-instant), falling through on rate limits — Groq's free-tier
+# daily quota is per model, so the chain gives ~16K requests/day on one key.
+# GROQ_MODEL (optional) is prepended and tried first:
 # [vars]
 # GROQ_MODEL = "llama-3.3-70b-versatile"
